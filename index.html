@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive World Map - Company & Client Locations</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.4/gsap.min.js"></script>
+    
+    <!-- Tabler Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont/tabler-icons.min.css">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loader-container">
+            <div class="loader"></div>
+            <p class="loading-text">Initializing World Map...</p>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div id="app" class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <h1 class="app-title">
+                    <i class="ti ti-world"></i>
+                    Global Presence
+                </h1>
+                <div class="header-subtitle">Company & Client Locations Worldwide</div>
+            </div>
+            <div class="header-controls">
+                <button id="replay-animation" class="btn-control" title="Replay Animation">
+                    <i class="ti ti-player-play"></i>
+                    <span>Replay Route</span>
+                </button>
+                <button id="toggle-legend" class="btn-control" title="Toggle Legend">
+                    <i class="ti ti-info-circle"></i>
+                    <span>Legend</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Map Container -->
+        <div id="map" class="map-container"></div>
+
+        <!-- Legend Panel -->
+        <div id="legend-panel" class="legend-panel">
+            <h3 class="legend-title">Map Legend</h3>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-marker company-marker-legend">
+                        <i class="ti ti-building"></i>
+                    </div>
+                    <span>Company Locations</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-marker client-marker-legend">
+                        <i class="ti ti-users"></i>
+                    </div>
+                    <span>Client Locations</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line"></div>
+                    <span>Company Route</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Animation Status -->
+        <div id="animation-status" class="animation-status">
+            <i class="ti ti-plane-inflight"></i>
+            <span id="status-text">Traveling to next location...</span>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/data.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/animation.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
