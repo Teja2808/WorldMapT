@@ -3,90 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive World Map - Company & Client Locations</title>
+    <title>Global Network Explorer</title>
     
-    <!-- Leaflet CSS -->
+    <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-    <!-- GSAP for animations -->
+    <!-- GSAP (Used for animation timing) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.4/gsap.min.js"></script>
     
-    <!-- Tabler Icons -->
+    <!-- Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont/tabler-icons.min.css">
     
     <!-- Custom Styles -->
     <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
-    <!-- Loading Screen -->
     <div id="loading-screen" class="loading-screen">
         <div class="loader-container">
             <div class="loader"></div>
-            <p class="loading-text">Initializing World Map...</p>
+            <p class="loading-text">Initializing Global Network...</p>
         </div>
     </div>
 
-    <!-- Main Container -->
     <div id="app" class="app-container">
-        <!-- Header -->
-        <header class="app-header">
-            <div class="header-content">
-                <h1 class="app-title">
-                    <i class="ti ti-world"></i>
-                    Global Presence
-                </h1>
-                <div class="header-subtitle">Company & Client Locations Worldwide</div>
-            </div>
-            <div class="header-controls">
-                <button id="replay-animation" class="btn-control" title="Replay Animation">
-                    <i class="ti ti-player-play"></i>
-                    <span>Replay Route</span>
-                </button>
-                <button id="toggle-legend" class="btn-control" title="Toggle Legend">
-                    <i class="ti ti-info-circle"></i>
-                    <span>Legend</span>
-                </button>
-            </div>
-        </header>
-
-        <!-- Map Container -->
         <div id="map" class="map-container"></div>
 
-        <!-- Legend Panel -->
-        <div id="legend-panel" class="legend-panel">
-            <h3 class="legend-title">Map Legend</h3>
+        <!-- Floating Top Controls -->
+        <div class="floating-top-controls">
+            <button id="toggle-legend" class="btn-floating" title="Toggle Legend (Shortcut: L)">
+                <i class="ti ti-info-circle"></i>
+                <span>Legend</span>
+            </button>
+            <a href="login.html" class="btn-floating" title="Admin Portal">
+                <i class="ti ti-shield-lock"></i>
+                <span>Admin</span>
+            </a>
+        </div>
+
+        <!-- Map Controls Bottom Left -->
+        <div class="map-controls-bottom-left">
+            <button class="btn-map-control" onclick="goHome()" title="Reset Map View">
+                <i class="ti ti-home"></i>
+            </button>
+            <button class="btn-map-control" onclick="reloadPage()" title="Reload Page">
+                <i class="ti ti-refresh"></i>
+            </button>
+            <button class="btn-map-control" onclick="toggleFullscreen()" title="Toggle Fullscreen">
+                <i class="ti ti-maximize"></i>
+            </button>
+        </div>
+
+        <!-- Left Side Info Panel -->
+        <div id="info-panel" class="info-panel hidden">
+            <button class="info-panel-close" onclick="closeInfoPanel()">
+                <i class="ti ti-x"></i>
+            </button>
+            <div id="info-panel-content"></div>
+        </div>
+
+        <div id="legend-panel" class="legend-panel mini">
             <div class="legend-items">
-                <div class="legend-item">
-                    <div class="legend-marker company-marker-legend">
-                        <i class="ti ti-building"></i>
+                <div class="filter-group">
+                    <div class="filter-info">
+                        <div class="legend-marker company-marker-legend small"><i class="ti ti-building"></i></div>
+                        <span>Offices</span>
                     </div>
-                    <span>Company Locations</span>
+                    <label class="switch">
+                        <input type="checkbox" id="filter-offices" checked onchange="toggleMarkers('offices', this.checked)">
+                        <span class="slider round"></span>
+                    </label>
                 </div>
-                <div class="legend-item">
-                    <div class="legend-marker client-marker-legend">
-                        <i class="ti ti-users"></i>
+                
+                <div class="filter-group">
+                    <div class="filter-info">
+                        <div class="legend-marker client-marker-legend small"><i class="ti ti-users"></i></div>
+                        <span>Clients</span>
                     </div>
-                    <span>Client Locations</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-line"></div>
-                    <span>Company Route</span>
+                    <label class="switch">
+                        <input type="checkbox" id="filter-clients" checked onchange="toggleMarkers('clients', this.checked)">
+                        <span class="slider round"></span>
+                    </label>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Animation Status -->
-        <div id="animation-status" class="animation-status">
-            <i class="ti ti-plane-inflight"></i>
-            <span id="status-text">Traveling to next location...</span>
+    <!-- Image Lightbox Modal -->
+    <div id="lightbox-modal" class="lightbox-modal">
+        <div class="lightbox-content">
+            <button class="lightbox-close" onclick="closeLightbox()"><i class="ti ti-x"></i></button>
+            <button class="lightbox-prev" onclick="prevImage()"><i class="ti ti-chevron-left"></i></button>
+            <button class="lightbox-next" onclick="nextImage()"><i class="ti ti-chevron-right"></i></button>
+            <img id="lightbox-image" src="" alt="">
+            <div class="lightbox-counter"><span id="lightbox-current">1</span> / <span id="lightbox-total">1</span></div>
         </div>
     </div>
 
     <!-- Scripts -->
+    <script src="js/storage.js"></script>
     <script src="js/data.js"></script>
     <script src="js/map.js"></script>
     <script src="js/animation.js"></script>
+    <script src="js/lightbox.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

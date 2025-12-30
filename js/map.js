@@ -1,44 +1,26 @@
-// Map Initialization and Configuration using Leaflet.js
+// Map Initialization and Configuration using Leaflet.js - MongoDB Version (Port 3000)
 
 class MapManager {
     constructor() {
         this.map = null;
         this.markers = {
             companies: [],
-            clients: [],
-            airplane: null
+            clients: []
         };
-        this.routeLine = null;
-        this.routePolyline = null;
     }
 
     initialize() {
         // Initialize Leaflet map with world boundaries
         this.map = L.map('map', {
-            center: [20, 0],
-            zoom: 2,
-            minZoom: 2,
-            maxZoom: 5,
+            minZoom: 1,
+            maxZoom: 18,
             zoomControl: false,
-            maxBounds: [[-85, -180], [85, 180]],
-            maxBoundsViscosity: 1.0,
-            worldCopyJump: false,
-            noWrap: true
+            worldCopyJump: true,
+            center: [35, 0], // Centered on major landmasses
+            zoom: 3 // Higher zoom to fill the screen better
         });
 
-        // Add SVG World Map
-        const svgLayer = L.svg();
-        svgLayer.addTo(this.map);
-        
-        // Add dark background
-        const darkBg = L.rectangle([[-90, -180], [90, 180]], {
-            color: 'transparent',
-            fillColor: '#0A0E1A',
-            fillOpacity: 1,
-            interactive: false
-        }).addTo(this.map);
-
-        // Load and add SVG world map
+        // Add SVG World Map Layer
         this.addSVGWorldMap();
 
         // Add zoom control to bottom right
@@ -46,27 +28,17 @@ class MapManager {
             position: 'bottomright'
         }).addTo(this.map);
 
-        // Setup route polyline (initially empty, will be drawn progressively)
-        this.routePolyline = L.polyline([], {
-            color: '#00D9FF',
-            weight: 3,
-            opacity: 0.9,
-            smoothFactor: 1,
-            className: 'route-line-glow'
-        }).addTo(this.map);
-        
-        // Create a separate layer for the animated segment
-        this.animatedSegment = L.polyline([], {
-            color: '#7B61FF',
-            weight: 4,
-            opacity: 1,
-            smoothFactor: 1,
-            className: 'route-line-animated'
-        }).addTo(this.map);
+        // Add markers
+        this.addMarkers();
 
-        // Add markers after a short delay
+        // Ensure map resizes with window
+        window.addEventListener('resize', () => {
+            this.map.invalidateSize();
+        });
+        
+        // Ensure map fills available space
         setTimeout(() => {
-            this.addMarkers();
+            this.map.invalidateSize();
         }, 100);
     }
 
@@ -88,7 +60,6 @@ class MapManager {
             })
             .catch(error => {
                 console.log('Using fallback map rendering');
-                // Fallback to tile layer if GeoJSON fails
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
                     attribution: '© OpenStreetMap, © CartoDB',
                     subdomains: 'abcd',
@@ -99,158 +70,204 @@ class MapManager {
     }
 
     addMarkers() {
-        // Add company markers
+        // Add company markers from locationData
         window.locationData.companies.forEach((location) => {
             this.addCompanyMarker(location);
         });
 
-        // Add client markers
+        // Add client markers from locationData
         window.locationData.clients.forEach((location) => {
             this.addClientMarker(location);
         });
     }
 
-    addCompanyMarker(location) {
-        // Create custom marker icon
+    async addCompanyMarker(location) {
         const icon = L.divIcon({
             className: 'custom-marker-container',
             html: '<div class="custom-marker company pulse"><i class="ti ti-building"></i></div>',
             iconSize: [40, 40],
-            iconAnchor: [20, 20],
-            popupAnchor: [0, -20]
+            iconAnchor: [20, 20]
         });
 
-        // Create popup content
-        const popupContent = this.createPopupContent(location, 'company');
+        const latlng = L.latLng(location.coordinates[1], location.coordinates[0]);
+        const marker = L.marker(latlng, { icon: icon }).addTo(this.map);
 
-        // Create marker
-        const marker = L.marker([location.coordinates[1], location.coordinates[0]], {
-            icon: icon
-        })
-        .bindPopup(popupContent, {
-            maxWidth: 320,
-            className: 'custom-popup'
-        })
-        .addTo(this.map);
+        marker.on('click', async (e) => {
+            const content = await this.createPopupContent(location, 'company');
+            this.showInSidePanel(content, e.originalEvent);
+        });
 
         this.markers.companies.push({ marker, location });
     }
 
-    addClientMarker(location) {
-        // Create custom marker icon
+    async addClientMarker(location) {
         const icon = L.divIcon({
             className: 'custom-marker-container',
             html: '<div class="custom-marker client"><i class="ti ti-users"></i></div>',
             iconSize: [40, 40],
-            iconAnchor: [20, 20],
-            popupAnchor: [0, -20]
+            iconAnchor: [20, 20]
         });
 
-        // Create popup content
-        const popupContent = this.createPopupContent(location, 'client');
+        const latlng = L.latLng(location.coordinates[1], location.coordinates[0]);
+        const marker = L.marker(latlng, { icon: icon }).addTo(this.map);
 
-        // Create marker
-        const marker = L.marker([location.coordinates[1], location.coordinates[0]], {
-            icon: icon
-        })
-        .bindPopup(popupContent, {
-            maxWidth: 320,
-            className: 'custom-popup'
-        })
-        .addTo(this.map);
+        marker.on('click', async (e) => {
+            const content = await this.createPopupContent(location, 'client');
+            this.showInSidePanel(content, e.originalEvent);
+        });
 
         this.markers.clients.push({ marker, location });
     }
 
-    createPopupContent(location, type) {
+    showInSidePanel(content, event) {
+        const panel = document.getElementById('info-panel');
+        const contentArea = document.getElementById('info-panel-content');
+        contentArea.innerHTML = content;
+        
+        // Reset scroll position to top
+        panel.scrollTop = 0;
+        
+        // Position panel next to click
+        const x = event.clientX;
+        const y = event.clientY;
+        
+        // Position panel to the LEFT of the location by default
+        let left = x - 410; 
+        let top = y - 100;
+        
+        // If marker is on the left side of the screen, flip panel to the RIGHT
+        if (x < 450) {
+            left = x + 30;
+        }
+
+        // Vertical screen boundary safety
+        if (top + 500 > window.innerHeight) top = window.innerHeight - 520;
+        if (top < 20) top = 20;
+
+        panel.style.left = `${left}px`;
+        panel.style.top = `${top}px`;
+        
+        panel.classList.remove('hidden');
+    }
+
+    async createPopupContent(location, type) {
         const isCompany = type === 'company';
         const icon = isCompany ? 'ti-building' : 'ti-users';
         const iconClass = isCompany ? 'company' : 'client';
 
         let details = '';
-        if (isCompany) {
-            details = `
-                <div class="popup-info">
-                    <i class="ti ti-users"></i>
-                    <span>${location.employees} employees</span>
-                </div>
-                <div class="popup-info">
-                    <i class="ti ti-calendar"></i>
-                    <span>Established ${location.established}</span>
-                </div>
-            `;
-        } else {
-            details = `
-                <div class="popup-info">
-                    <i class="ti ti-briefcase"></i>
-                    <span>${location.industry}</span>
-                </div>
-                <div class="popup-info">
-                    <i class="ti ti-calendar"></i>
-                    <span>Partner since ${location.partnership_since}</span>
-                </div>
-            `;
+        let relatedData = '';
+        
+        try {
+            const API_URL = `http://localhost:3000/api/${isCompany ? 'offices' : 'clients'}/${location.id}`;
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            
+            if (isCompany) {
+                details = `
+                    ${location.employees ? `<div class="popup-info"><i class="ti ti-users"></i><span>${location.employees} employees</span></div>` : ''}
+                    ${location.established ? `<div class="popup-info"><i class="ti ti-calendar"></i><span>Est. ${location.established}</span></div>` : ''}
+                `;
+                
+                if (data.visits && data.visits.length > 0) {
+                    relatedData = `
+                        <div class="popup-visits">
+                            <h4><i class="ti ti-calendar-event"></i> Recent Client Visits</h4>
+                            ${data.visits.slice(0, 3).map(v => `
+                                <div class="visit-group">
+                                    <div class="visit-item">
+                                        <strong>${v.client?.name || 'Unknown'}</strong>
+                                        <span>${new Date(v.visitDate).toLocaleDateString()}</span>
+                                    </div>
+                                    ${v.images && v.images.length > 0 ? `
+                                        <div class="popup-slider-container">
+                                            <div class="popup-slider">
+                                                ${v.images.map((img, idx) => `
+                                                    <div class="popup-slider-item">
+                                                        <img src="${img}" alt="Visit photo" onclick="openLightbox(${JSON.stringify(v.images).replace(/"/g, '&quot;')}, ${idx}); event.stopPropagation();">
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                            ${v.images.length > 1 ? '<div class="slider-hint"><i class="ti ti-arrows-left-right"></i> Scroll for more</div>' : ''}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+            } else {
+                details = `
+                    ${location.industry ? `<div class="popup-info"><i class="ti ti-briefcase"></i><span>${location.industry}</span></div>` : ''}
+                    ${location.partnership_since ? `<div class="popup-info"><i class="ti ti-calendar"></i><span>Partner since ${location.partnership_since}</span></div>` : ''}
+                `;
+                
+                if (data.visits && data.visits.length > 0) {
+                    relatedData = `
+                        <div class="popup-visits">
+                            <h4><i class="ti ti-building"></i> Visited Offices</h4>
+                            ${data.visits.slice(0, 3).map(v => `
+                                <div class="visit-group">
+                                    <div class="visit-item">
+                                        <strong>${v.office?.name || 'Unknown'}</strong>
+                                        <span>${new Date(v.visitDate).toLocaleDateString()}</span>
+                                    </div>
+                                    ${v.images && v.images.length > 0 ? `
+                                        <div class="popup-slider-container">
+                                            <div class="popup-slider">
+                                                ${v.images.map((img, idx) => `
+                                                    <div class="popup-slider-item">
+                                                        <img src="${img}" alt="Visit photo" onclick="openLightbox(${JSON.stringify(v.images).replace(/"/g, '&quot;')}, ${idx}); event.stopPropagation();">
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                            ${v.images.length > 1 ? '<div class="slider-hint"><i class="ti ti-arrows-left-right"></i> Scroll for more</div>' : ''}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching API data:', error);
         }
+
+        const imagesHTML = location.images && location.images.length > 0 ? `
+            <div class="popup-slider-container">
+                <div class="popup-slider">
+                    ${location.images.map((img, index) => `
+                        <div class="popup-slider-item">
+                            <img src="${img}" alt="${location.name}" onclick="openLightbox(${JSON.stringify(location.images).replace(/"/g, '&quot;')}, ${index})">
+                        </div>
+                    `).join('')}
+                </div>
+                ${location.images.length > 1 ? '<div class="slider-hint"><i class="ti ti-arrows-left-right"></i> Scroll for more</div>' : ''}
+            </div>
+        ` : '';
 
         return `
             <div class="popup-header">
-                <div class="popup-icon ${iconClass}">
-                    <i class="ti ${icon}"></i>
-                </div>
+                <div class="popup-icon ${iconClass}"><i class="ti ${icon}"></i></div>
                 <div class="popup-title-section">
                     <div class="popup-title">${location.name}</div>
                     <div class="popup-type">${isCompany ? 'Company Office' : 'Client Location'}</div>
                 </div>
             </div>
             <div class="popup-body">
-                <div class="popup-info">
-                    <i class="ti ti-map-pin"></i>
-                    <span>${location.city}, ${location.country}</span>
-                </div>
+                <div class="popup-info"><i class="ti ti-map-pin"></i><span>${location.city}, ${location.country}</span></div>
                 ${details}
-                <div class="popup-description">
-                    ${location.description}
-                </div>
+                ${location.description ? `<div class="popup-description">${location.description}</div>` : ''}
+                ${imagesHTML}
+                ${relatedData}
             </div>
         `;
     }
 
-    createAirplaneMarker() {
-        const icon = L.divIcon({
-            className: 'airplane-marker-container',
-            html: '<div class="airplane-marker"><i class="ti ti-plane-inflight"></i></div>',
-            iconSize: [32, 32],
-            iconAnchor: [16, 16]
-        });
-
-        this.markers.airplane = L.marker(
-            [window.locationData.companies[0].coordinates[1], window.locationData.companies[0].coordinates[0]],
-            { icon: icon }
-        ).addTo(this.map);
-
-        return this.markers.airplane.getElement().querySelector('.airplane-marker');
-    }
-
-    updateRouteLine(coordinates) {
-        // Convert coordinates from [lng, lat] to [lat, lng] for Leaflet
-        const latLngs = coordinates.map(coord => [coord[1], coord[0]]);
-        this.routePolyline.setLatLngs(latLngs);
-    }
-    
-    updateAnimatedSegment(start, current) {
-        // Update the animated segment between start and current position
-        this.animatedSegment.setLatLngs([[start[1], start[0]], [current[1], current[0]]]);
-    }
-    
-    clearAnimatedSegment() {
-        this.animatedSegment.setLatLngs([]);
-    }
-
     fitBounds(coordinates) {
-        // Convert coordinates from [lng, lat] to [lat, lng] for Leaflet
         const latLngs = coordinates.map(coord => [coord[1], coord[0]]);
         const bounds = L.latLngBounds(latLngs);
-        
         this.map.fitBounds(bounds, {
             padding: [100, 100],
             maxZoom: 5,
@@ -258,7 +275,25 @@ class MapManager {
             duration: 2
         });
     }
+
+    goHome() {
+        this.map.setView([35, 0], 3, { animate: true });
+    }
+
+    resetMap() {
+        this.map.setView([35, 0], 3, { animate: true });
+    }
+
+    toggleMarkers(type, isVisible) {
+        const markerList = type === 'offices' ? this.markers.companies : this.markers.clients;
+        markerList.forEach(item => {
+            if (isVisible) {
+                item.marker.addTo(this.map);
+            } else {
+                this.map.removeLayer(item.marker);
+            }
+        });
+    }
 }
 
-// Export MapManager
 window.MapManager = MapManager;

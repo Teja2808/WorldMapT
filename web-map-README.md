@@ -1,22 +1,189 @@
-# Interactive World Map - Company & Client Locations
+# Interactive World Map Tracker - Full Stack Application
 
-A beautiful, interactive world map application showcasing company offices and client locations worldwide with smooth airplane route animations.
+A full-stack web application for tracking company offices, client locations, and visits worldwide with MongoDB backend and admin panel.
 
 ## Features
 
-- **Interactive Globe View**: 3D globe projection with atmospheric effects
-- **Animated Flight Routes**: Watch an airplane smoothly travel between company locations
-- **Custom Markers**: Distinct markers for company offices and client locations
-- **Rich Popups**: Click any marker to see detailed information
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
-- **Smooth Animations**: GSAP-powered transitions and effects
-- **Modern UI**: Clean, professional interface with glassmorphism effects
+### Map Features
+- **Interactive World Map**: SVG-based vector map with smooth animations
+- **Animated Flight Routes**: Circular airplane animation showing office connections
+- **Smart Markers**: Company and client markers with hover effects
+- **Rich Popups**: Click markers to see:
+  - Office: Location, employees, images, and recent client visits
+  - Client: Location, industry, images, and visited offices
+- **Progressive Route Drawing**: Lines appear as airplane travels
+- **Premium Dark UI**: Modern glassmorphic design with neon accents
 
-## Setup Instructions
+### Admin Panel Features
+- **Office Management**: Add, edit, delete office locations with images
+- **Client Management**: Add, edit, delete client locations with images
+- **Visit Tracking**: Record client visits to offices with dates and notes
+- **Image Upload**: Upload up to 5 images per office/client
+- **Real-time Updates**: Changes reflect immediately on the map
 
-### 1. Run the Application
+## Tech Stack
 
-**No API key required!** This application uses Leaflet.js with OpenStreetMap tiles - completely free and open source.
+- **Frontend**: Vanilla JavaScript, Leaflet.js, GSAP, CSS3
+- **Backend**: Node.js, Express.js
+- **Database**: MongoDB with Mongoose ODM
+- **File Upload**: Multer for image handling
+
+## Installation & Setup
+
+### Prerequisites
+- Node.js (v14 or higher)
+- MongoDB (running locally or connection string)
+
+### 1. Install Dependencies
+```bash
+npm install
+```
+
+### 2. Setup MongoDB
+
+**Option A: Local MongoDB**
+```bash
+# Make sure MongoDB is running on localhost:27017
+# Default connection: mongodb://localhost:27017/worldmap
+```
+
+**Option B: MongoDB Atlas (Cloud)**
+1. Create account at https://www.mongodb.com/cloud/atlas
+2. Create a cluster and get connection string
+3. Update `.env` file with your connection string
+
+### 3. Configure Environment Variables
+
+The `.env` file is already created with default values:
+```env
+PORT=3000
+MONGODB_URI=mongodb://localhost:27017/worldmap
+NODE_ENV=development
+```
+
+### 4. Seed Sample Data (Optional)
+```bash
+npm run seed
+```
+
+This creates sample offices, clients, and visits.
+
+### 5. Start the Server
+```bash
+npm start
+```
+
+For development with auto-reload:
+```bash
+npm run dev
+```
+
+### 6. Access the Application
+
+- **Map View**: http://localhost:3000
+- **Admin Panel**: http://localhost:3000/admin
+
+## Usage Guide
+
+### Admin Panel
+
+#### Adding an Office
+1. Go to Admin Panel → Offices tab
+2. Click "+ Add Office"
+3. Fill in:
+   - Office name, city, country
+   - Coordinates (longitude, latitude) - Use Google Maps to find coordinates
+   - Employees count, established year
+   - Description
+   - Upload images (optional, max 5)
+4. Click "Save Office"
+
+#### Adding a Client
+1. Go to Clients tab
+2. Click "+ Add Client"
+3. Fill in client details including coordinates
+4. Upload client images
+5. Save
+
+#### Recording a Visit
+1. Go to Visits tab
+2. Click "+ Add Visit"
+3. Select office and client from dropdowns
+4. Enter visit date, purpose, and notes
+5. Add attendees (comma-separated)
+6. Save
+
+### Map Interaction
+
+- **View Office Details**: Click any blue building marker
+- **View Client Details**: Click any pink user group marker
+- **Replay Animation**: Click "Replay Route" or press 'R'
+- **Toggle Legend**: Click "Legend" button or press 'L'
+- **Pan/Zoom**: Use mouse or touch gestures
+
+## API Endpoints
+
+### Offices
+- `GET /api/offices` - Get all offices
+- `GET /api/offices/:id` - Get office with visiting clients
+- `POST /api/offices` - Create office (multipart/form-data)
+- `PUT /api/offices/:id` - Update office
+- `DELETE /api/offices/:id` - Delete office
+
+### Clients
+- `GET /api/clients` - Get all clients
+- `GET /api/clients/:id` - Get client with visited offices
+- `POST /api/clients` - Create client (multipart/form-data)
+- `PUT /api/clients/:id` - Update client
+- `DELETE /api/clients/:id` - Delete client
+
+### Visits
+- `GET /api/visits` - Get all visits
+- `GET /api/visits/:id` - Get single visit
+- `POST /api/visits` - Create visit (JSON)
+- `PUT /api/visits/:id` - Update visit
+- `DELETE /api/visits/:id` - Delete visit
+
+## Project Structure
+
+```
+.
+├── models/              # Mongoose models
+│   ├── Office.js
+│   ├── Client.js
+│   └── Visit.js
+├── routes/              # Express routes
+│   ├── offices.js
+│   ├── clients.js
+│   └── visits.js
+├── uploads/             # Uploaded images
+│   ├── offices/
+│   └── clients/
+├── js/                  # Frontend JavaScript
+│   ├── app.js          # Main app
+│   ├── map.js          # Map manager
+│   ├── animation.js    # Airplane animation
+│   ├── data.js         # API data loader
+│   └── admin.js        # Admin panel
+├── styles/              # CSS files
+│   ├── main.css
+│   └── admin.css
+├── server.js            # Express server
+├── seed.js              # Database seeder
+├── index.html           # Map view
+├── admin.html           # Admin panel
+├── package.json
+└── .env                 # Environment variables
+```
+
+## Finding Coordinates
+
+To get coordinates for a location:
+1. Go to [Google Maps](https://www.google.com/maps)
+2. Right-click on the location
+3. Click the coordinates to copy
+4. Format: First number is latitude, second is longitude
+5. In the form: longitude goes first, then latitude
 
 Since this is a vanilla HTML/CSS/JavaScript application, you can run it in several ways:
 

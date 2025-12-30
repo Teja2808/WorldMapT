@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - World Map Tracker</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont/tabler-icons.min.css">
+    <link rel="stylesheet" href="styles/admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Header -->
+        <header class="admin-header">
+            <div class="header-left">
+                <h1><i class="ti ti-shield-lock"></i> Admin Panel</h1>
+                <span class="admin-user"><i class="ti ti-user"></i> <span id="admin-username"></span></span>
+            </div>
+            <div class="header-actions">
+                <a href="index.html" class="btn-link"><i class="ti ti-map"></i> View Map</a>
+                <button onclick="logout()" class="btn-logout"><i class="ti ti-logout"></i> Logout</button>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="admin-nav">
+            <button class="tab-btn active" data-tab="offices">
+                <i class="ti ti-building"></i> Offices
+            </button>
+            <button class="tab-btn" data-tab="clients">
+                <i class="ti ti-users"></i> Clients
+            </button>
+            <button class="tab-btn" data-tab="visits">
+                <i class="ti ti-calendar-event"></i> Visits
+            </button>
+        </nav>
+
+        <!-- Content Area -->
+        <main class="admin-content">
+            <!-- Offices Tab -->
+            <section id="offices-tab" class="tab-content active">
+                <div class="section-header">
+                    <h2>Manage Offices</h2>
+                    <button class="btn-primary" onclick="openOfficeForm()">
+                        <i class="ti ti-plus"></i> Add Office
+                    </button>
+                </div>
+                <div id="offices-list" class="data-grid"></div>
+            </section>
+
+            <!-- Clients Tab -->
+            <section id="clients-tab" class="tab-content">
+                <div class="section-header">
+                    <h2>Manage Clients</h2>
+                    <button class="btn-primary" onclick="openClientForm()">
+                        <i class="ti ti-plus"></i> Add Client
+                    </button>
+                </div>
+                <div id="clients-list" class="data-grid"></div>
+            </section>
+
+            <!-- Visits Tab -->
+            <section id="visits-tab" class="tab-content">
+                <div class="section-header">
+                    <h2>Manage Visits</h2>
+                    <button class="btn-primary" onclick="openVisitForm()">
+                        <i class="ti ti-plus"></i> Add Visit
+                    </button>
+                </div>
+                <div id="visits-list" class="data-grid"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Office Form Modal -->
+    <div id="office-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="office-modal-title">Add Office</h3>
+                <button class="btn-close" onclick="closeOfficeForm()">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            <form id="office-form" enctype="multipart/form-data">
+                <input type="hidden" id="office-id" name="officeId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Office Name *</label>
+                        <input type="text" name="name" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Full Address</label>
+                        <input type="text" name="address" placeholder="123 Street, Area, City, Zip, Country">
+                    </div>
+                    <div class="form-group">
+                        <label>City *</label>
+                        <input type="text" name="city" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Country *</label>
+                        <input type="text" name="country" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Employees</label>
+                        <input type="number" name="employees" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Latitude *</label>
+                        <input type="number" step="any" name="latitude" required placeholder="e.g., 37.7749">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Longitude *</label>
+                        <div class="input-with-btn">
+                            <input type="number" step="any" name="longitude" required placeholder="e.g., -122.4194">
+                            <button type="button" class="btn-primary" onclick="getFormCoordinates('office', event)">
+                                Get Coordinates
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Established Year</label>
+                        <input type="number" name="established" min="1900" max="2024">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Description</label>
+                        <textarea name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Images</label>
+                        <input type="file" name="images" accept="image/*" multiple id="office-images-input">
+                        <small>Upload images (JPG, PNG, GIF, WEBP)</small>
+                        <div id="office-images-preview" class="images-preview"></div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeOfficeForm()">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Office</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Client Form Modal -->
+    <div id="client-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="client-modal-title">Add Client</h3>
+                <button class="btn-close" onclick="closeClientForm()">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            <form id="client-form" enctype="multipart/form-data">
+                <input type="hidden" id="client-id" name="clientId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Client Name *</label>
+                        <input type="text" name="name" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Full Address</label>
+                        <input type="text" name="address" placeholder="Office Location, Building, Street, City, Country">
+                    </div>
+                    <div class="form-group">
+                        <label>City *</label>
+                        <input type="text" name="city" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Country *</label>
+                        <input type="text" name="country" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Industry</label>
+                        <input type="text" name="industry">
+                    </div>
+                    <div class="form-group">
+                        <label>Latitude *</label>
+                        <input type="number" step="any" name="latitude" required placeholder="e.g., 40.7128">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Longitude *</label>
+                        <div class="input-with-btn">
+                            <input type="number" step="any" name="longitude" required placeholder="e.g., -74.0060">
+                            <button type="button" class="btn-primary" onclick="getFormCoordinates('client', event)">
+                                Get Coordinates
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Partnership Since</label>
+                        <input type="number" name="partnershipSince" min="1900" max="2024">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Description</label>
+                        <textarea name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Images</label>
+                        <input type="file" name="images" accept="image/*" multiple id="client-images-input">
+                        <small>Upload images (JPG, PNG, GIF, WEBP)</small>
+                        <div id="client-images-preview" class="images-preview"></div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeClientForm()">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Client</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Visit Form Modal -->
+    <div id="visit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="visit-modal-title">Add Visit</h3>
+                <button class="btn-close" onclick="closeVisitForm()">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            <form id="visit-form" enctype="multipart/form-data">
+                <input type="hidden" id="visit-id" name="visitId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Office *</label>
+                        <select name="officeId" id="visit-office" required>
+                            <option value="">Select Office</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Client *</label>
+                        <select name="clientId" id="visit-client" required>
+                            <option value="">Select Client</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Visit Date *</label>
+                        <input type="date" name="visitDate" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Purpose</label>
+                        <input type="text" name="purpose">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Notes</label>
+                        <textarea name="notes" rows="3"></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Attendees (comma-separated)</label>
+                        <input type="text" name="attendees" placeholder="John Doe, Jane Smith">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Visit Images</label>
+                        <input type="file" name="images" accept="image/*" multiple id="visit-images-input">
+                        <small>Upload photos from the visit</small>
+                        <div id="visit-images-preview" class="images-preview"></div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeVisitForm()">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Visit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content confirm-box">
+            <div class="confirm-header">
+                <i class="ti ti-alert-triangle"></i>
+                <h3>Are you sure?</h3>
+            </div>
+            <p id="confirm-message">Do you really want to delete this record? This action cannot be undone.</p>
+            <div class="confirm-actions">
+                <button class="btn-secondary" id="confirm-cancel">No, Keep it</button>
+                <button class="btn-danger" id="confirm-ok">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/admin.js"></script>
+    <script>
+        // Check authentication
+        if (sessionStorage.getItem('adminLoggedIn') !== 'true') {
+            window.location.href = 'login.html';
+        }
+        
+        // Show username
+        document.getElementById('admin-username').textContent = sessionStorage.getItem('adminUsername') || 'Admin';
+        
+        // Logout function
+        function logout() {
+            sessionStorage.removeItem('adminLoggedIn');
+            sessionStorage.removeItem('adminUsername');
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-// Main Application Logic
+// Main Application Logic - Updated for 3D Arcs
 
 class App {
     constructor() {
@@ -8,64 +8,54 @@ class App {
         this.legendPanel = document.getElementById('legend-panel');
         this.isLegendVisible = true;
 
+        window.appInstance = this; // Store instance for global access
         this.init();
     }
 
     async init() {
-        // Show loading screen
         this.showLoading();
 
-        // Wait for fonts and resources to load
+        // Load data from localStorage
+        await window.loadLocationData();
+
         await this.waitForResources();
 
         // Initialize map
         this.mapManager = new MapManager();
         this.mapManager.initialize();
 
-        // Initialize animation controller
+        // Initialize 3D arc animation controller
         this.animationController = new AnimationController(this.mapManager);
 
-        // Hide loading screen
         this.hideLoading();
-
-        // Setup event listeners
         this.setupEventListeners();
-
-        // Start initial animation after map is ready
-        setTimeout(() => {
-            this.animationController.startRouteAnimation();
-        }, 1500);
+        
+        console.log('App initialized. 3D Arcs will appear after 15s of idle time.');
     }
 
     setupEventListeners() {
-        // Replay animation button
-        const replayButton = document.getElementById('replay-animation');
-        replayButton.addEventListener('click', () => {
-            this.animationController.stop();
-            setTimeout(() => {
-                this.animationController.startRouteAnimation();
-            }, 500);
-        });
-
         // Toggle legend button
         const legendButton = document.getElementById('toggle-legend');
-        legendButton.addEventListener('click', () => {
-            this.toggleLegend();
-        });
+        if (legendButton) {
+            legendButton.addEventListener('click', () => {
+                this.toggleLegend();
+            });
+        }
 
-        // Add keyboard shortcut for replay (R key)
+        // Manual trigger button
+        const triggerButton = document.getElementById('trigger-animation');
+        if (triggerButton) {
+            triggerButton.addEventListener('click', () => {
+                this.animationController.triggerAnimation();
+            });
+        }
+
+        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'r' || e.key === 'R') {
-                this.animationController.stop();
-                setTimeout(() => {
-                    this.animationController.startRouteAnimation();
-                }, 500);
+            if (e.key.toLowerCase() === 't') {
+                this.animationController.triggerAnimation();
             }
-        });
-
-        // Add keyboard shortcut for legend toggle (L key)
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'l' || e.key === 'L') {
+            if (e.key.toLowerCase() === 'l') {
                 this.toggleLegend();
             }
         });
@@ -81,38 +71,56 @@ class App {
     }
 
     showLoading() {
-        this.loadingScreen.classList.remove('hidden');
+        if (this.loadingScreen) this.loadingScreen.classList.remove('hidden');
     }
 
     hideLoading() {
         setTimeout(() => {
-            this.loadingScreen.classList.add('hidden');
+            if (this.loadingScreen) this.loadingScreen.classList.add('hidden');
         }, 500);
     }
 
     async waitForResources() {
-        // Wait for document to be ready
         if (document.readyState === 'loading') {
-            await new Promise(resolve => {
-                document.addEventListener('DOMContentLoaded', resolve);
-            });
+            await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
         }
-
-        // Wait for fonts to load (if using web fonts)
-        if (document.fonts) {
-            await document.fonts.ready;
-        }
-
-        // Minimum loading time for smooth transition
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (document.fonts) await document.fonts.ready;
+        await new Promise(resolve => setTimeout(resolve, 800));
     }
 }
 
-// Initialize app when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        new App();
-    });
-} else {
-    new App();
-}
+// Global helper for closing panel
+window.closeInfoPanel = () => {
+    document.getElementById('info-panel').classList.add('hidden');
+};
+
+// Map Control Helpers
+window.goHome = () => {
+    if (window.appInstance && window.appInstance.mapManager) {
+        window.appInstance.mapManager.goHome();
+    }
+};
+
+window.reloadPage = () => {
+    window.location.reload();
+};
+
+window.toggleFullscreen = () => {
+    const mapElement = document.getElementById('map');
+    if (!document.fullscreenElement) {
+        mapElement.requestFullscreen().catch(err => {
+            alert(`Error attempting to enable full-screen mode: ${err.message}`);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+};
+
+window.toggleMarkers = (type, isVisible) => {
+    if (window.appInstance && window.appInstance.mapManager) {
+        window.appInstance.mapManager.toggleMarkers(type, isVisible);
+    }
+};
+
+// Start app
+new App();

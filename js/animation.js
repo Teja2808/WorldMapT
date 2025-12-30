@@ -1,182 +1,235 @@
-// Animation Controller for Airplane Route
+// 3D Arc Animation Controller with Idle Detection and Infinite Loop
 
 class AnimationController {
     constructor(mapManager) {
         this.mapManager = mapManager;
         this.isAnimating = false;
-        this.currentAnimation = null;
-        this.statusElement = document.getElementById('animation-status');
-        this.statusText = document.getElementById('status-text');
-    }
-
-    async startRouteAnimation() {
-        if (this.isAnimating) {
-            return;
-        }
-
-        this.isAnimating = true;
-        const companies = window.locationData.companies;
+        this.idleTimer = null;
+        this.idleDelay = 5000; // 15 seconds
+        this.currentPhase = 'offices'; // 'offices' or 'clients'
+        this.activeArcs = [];
+        this.canvas = null;
+        this.ctx = null;
         
-        // Make route circular by adding first location at the end
-        const circularRoute = [...companies, companies[0]];
-        const routeCoordinates = circularRoute.map(c => c.coordinates);
-
-        // Create airplane marker
-        const airplaneElement = this.mapManager.createAirplaneMarker();
-
-        // Fit map to show all company locations
-        this.mapManager.fitBounds(companies.map(c => c.coordinates));
-
-        // Wait for map animation to complete
-        await this.wait(2000);
-
-        // Track completed route segments
-        const completedPath = [circularRoute[0].coordinates];
-
-        // Animate through each company location (including return to start)
-        for (let i = 0; i < circularRoute.length - 1; i++) {
-            const currentLocation = circularRoute[i];
-            const nextLocation = circularRoute[i + 1];
-
-            // Show status
-            const statusText = i === circularRoute.length - 2 
-                ? `Returning to ${nextLocation.city}, ${nextLocation.country}`
-                : `Flying to ${nextLocation.city}, ${nextLocation.country}`;
-            this.showStatus(statusText);
-
-            // Animate airplane and draw line progressively
-            await this.animateAirplane(
-                airplaneElement,
-                currentLocation.coordinates,
-                nextLocation.coordinates,
-                completedPath,
-                i
-            );
-
-            // Add completed segment to path
-            completedPath.push(nextLocation.coordinates);
-            
-            // Update the permanent route line
-            this.mapManager.updateRouteLine(completedPath);
-            
-            // Clear animated segment
-            this.mapManager.clearAnimatedSegment();
-
-            // Brief pause at destination
-            await this.wait(800);
-        }
-
-        // Hide status
-        this.hideStatus();
-
-        // Show completion message
-        setTimeout(() => {
-            this.showStatus('Journey completed!');
-            setTimeout(() => {
-                this.hideStatus();
-            }, 2000);
-        }, 500);
-
-        // Keep airplane at final position for a moment, then remove
-        setTimeout(() => {
-            if (this.mapManager.markers.airplane) {
-                this.mapManager.markers.airplane.remove();
-                this.mapManager.markers.airplane = null;
-            }
-            this.isAnimating = false;
-        }, 3000);
+        this.setupCanvas();
+        this.setupIdleDetection();
     }
 
-    async animateAirplane(element, start, end, completedPath, segmentIndex) {
+    setupCanvas() {
+        const mapContainer = document.getElementById('map');
+        this.canvas = document.createElement('canvas');
+        this.canvas.className = 'arc-canvas';
+        this.canvas.style.position = 'absolute';
+        this.canvas.style.top = '0';
+        this.canvas.style.left = '0';
+        this.canvas.style.width = '100%';
+        this.canvas.style.height = '100%';
+        this.canvas.style.pointerEvents = 'none';
+        this.canvas.style.zIndex = '400';
+        mapContainer.appendChild(this.canvas);
+        
+        this.ctx = this.canvas.getContext('2d');
+        this.resizeCanvas();
+        
+        window.addEventListener('resize', () => this.resizeCanvas());
+        this.mapManager.map.on('move moveend zoom zoomend', () => this.updateArcs());
+    }
+
+    resizeCanvas() {
+        const rect = this.canvas.parentElement.getBoundingClientRect();
+        this.canvas.width = rect.width;
+        this.canvas.height = rect.height;
+    }
+
+    setupIdleDetection() {
+        const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+        events.forEach(event => {
+            document.addEventListener(event, () => this.resetIdleTimer());
+        });
+        this.resetIdleTimer();
+    }
+
+    resetIdleTimer() {
+        if (this.isAnimating) {
+            this.stopAnimation();
+        }
+        if (this.idleTimer) {
+            clearTimeout(this.idleTimer);
+        }
+        this.idleTimer = setTimeout(() => {
+            this.startIdleAnimation();
+        }, this.idleDelay);
+    }
+
+    async startIdleAnimation() {
+        if (this.isAnimating) return;
+        this.isAnimating = true;
+
+        // Close any open info panels (popups)
+        if (window.closeInfoPanel) {
+            window.closeInfoPanel();
+        }
+
+        // Reset map view to initial state before starting
+        if (window.goHome) {
+            window.goHome();
+            await this.wait(1500); // Wait for smooth transition
+        }
+        
+        while (this.isAnimating) {
+            // Office Phase - Sorted by Country
+            const officesEnabled = document.getElementById('filter-offices').checked;
+            if (officesEnabled) {
+                this.currentPhase = 'offices';
+                const sortedOffices = [...window.locationData.companies].sort((a, b) => 
+                    a.country.localeCompare(b.country) || a.city.localeCompare(b.city)
+                );
+                await this.animateLocations(sortedOffices, '#00D9FF');
+                if (!this.isAnimating) break;
+                await this.wait(2000);
+                this.activeArcs = [];
+            }
+            
+            // Client Phase - Sorted by Country
+            const clientsEnabled = document.getElementById('filter-clients').checked;
+            if (clientsEnabled) {
+                this.currentPhase = 'clients';
+                const sortedClients = [...window.locationData.clients].sort((a, b) => 
+                    a.country.localeCompare(b.country) || a.city.localeCompare(b.city)
+                );
+                await this.animateLocations(sortedClients, '#FF6B9D');
+                if (!this.isAnimating) break;
+                await this.wait(2000);
+                this.activeArcs = [];
+            }
+
+            // If both are disabled, just wait and loop
+            if (!officesEnabled && !clientsEnabled) {
+                await this.wait(2000);
+            }
+        }
+    }
+
+    async animateLocations(locations, color) {
+        if (locations.length < 2) return;
+        
+        // Stop at the last location, don't loop back to start
+        for (let i = 0; i < locations.length - 1; i++) {
+            if (!this.isAnimating) break;
+            
+            const start = locations[i];
+            const end = locations[i + 1];
+            
+            await this.draw3DArc(start.coordinates, end.coordinates, color);
+            await this.wait(800); 
+        }
+        await this.wait(2500);
+    }
+
+    async draw3DArc(startCoords, endCoords, color) {
         return new Promise((resolve) => {
-            const duration = 3; // seconds
-            const steps = 120;
-            let currentStep = 0;
-
-            // Calculate bearing for airplane rotation
-            const bearing = this.calculateBearing(start, end);
-
-            // GSAP animation
-            const animation = gsap.to({}, {
-                duration: duration,
-                ease: "power1.inOut",
-                onUpdate: () => {
-                    currentStep++;
-                    const progress = currentStep / steps;
-
-                    // Interpolate position
-                    const lng = start[0] + (end[0] - start[0]) * progress;
-                    const lat = start[1] + (end[1] - start[1]) * progress;
-
-                    // Update airplane position (Leaflet uses [lat, lng])
-                    if (this.mapManager.markers.airplane) {
-                        this.mapManager.markers.airplane.setLatLng([lat, lng]);
-
-                        // Rotate airplane based on bearing with smooth transition
-                        element.style.transform = `rotate(${bearing}deg)`;
-                    }
-
-                    // Draw animated segment from start to current position
-                    this.mapManager.updateAnimatedSegment(start, [lng, lat]);
-
-                    // Pan map to follow airplane smoothly in middle portion of journey
-                    if (progress > 0.15 && progress < 0.85) {
-                        this.mapManager.map.panTo([lat, lng], {
-                            animate: true,
-                            duration: 0.1,
-                            noMoveStart: true
-                        });
-                    }
-                },
-                onComplete: () => {
+            // Leaflet uses [lat, lng]
+            const startLatLng = L.latLng(startCoords[1], startCoords[0]);
+            const endLatLng = L.latLng(endCoords[1], endCoords[0]);
+            
+            const arc = {
+                start: startLatLng,
+                end: endLatLng,
+                color: color,
+                progress: 0,
+                duration: 2000
+            };
+            
+            this.activeArcs.push(arc);
+            
+            const startTime = Date.now();
+            const animate = () => {
+                if (!this.isAnimating) return;
+                
+                const elapsed = Date.now() - startTime;
+                arc.progress = Math.min(1, elapsed / arc.duration);
+                
+                if (arc.progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
                     resolve();
                 }
-            });
-
-            this.currentAnimation = animation;
+                this.render();
+            };
+            requestAnimationFrame(animate);
         });
     }
 
-    calculateBearing(start, end) {
-        const startLat = start[1] * Math.PI / 180;
-        const startLng = start[0] * Math.PI / 180;
-        const endLat = end[1] * Math.PI / 180;
-        const endLng = end[0] * Math.PI / 180;
-
-        const dLng = endLng - startLng;
-
-        const y = Math.sin(dLng) * Math.cos(endLat);
-        const x = Math.cos(startLat) * Math.sin(endLat) -
-                  Math.sin(startLat) * Math.cos(endLat) * Math.cos(dLng);
-
-        let bearing = Math.atan2(y, x) * 180 / Math.PI;
-        bearing = (bearing + 360) % 360;
-
-        return bearing;
+    updateArcs() {
+        if (this.isAnimating) this.render();
     }
 
-    showStatus(text) {
-        this.statusText.textContent = text;
-        this.statusElement.classList.add('active');
+    render() {
+        if (!this.ctx) return;
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        this.activeArcs.forEach(arc => {
+            let startPoint = this.mapManager.map.latLngToContainerPoint(arc.start);
+            let endPoint = this.mapManager.map.latLngToContainerPoint(arc.end);
+            
+            // Adjust points to start/end from the center of the markers
+            // Since our markers are 40x40 with [20,20] anchor, we don't need heavy offset
+            // But we ensure they are precisely calculated
+            const midX = (startPoint.x + endPoint.x) / 2;
+            const midY = (startPoint.y + endPoint.y) / 2;
+            const dx = endPoint.x - startPoint.x;
+            const dy = endPoint.y - startPoint.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            const height = dist * 0.4;
+            const cpX = midX;
+            const cpY = midY - height;
+            
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = arc.color;
+            this.ctx.lineWidth = 3;
+            this.ctx.lineCap = 'round';
+            this.ctx.shadowBlur = 12;
+            this.ctx.shadowColor = arc.color;
+            
+            this.ctx.moveTo(startPoint.x, startPoint.y);
+            for (let i = 0; i <= arc.progress; i += 0.01) {
+                const p = this.getBezierPoint(startPoint.x, startPoint.y, cpX, cpY, endPoint.x, endPoint.y, i);
+                this.ctx.lineTo(p.x, p.y);
+            }
+            this.ctx.stroke();
+            
+            if (arc.progress > 0) {
+                const tip = this.getBezierPoint(startPoint.x, startPoint.y, cpX, cpY, endPoint.x, endPoint.y, arc.progress);
+                this.ctx.beginPath();
+                this.ctx.fillStyle = '#FFFFFF';
+                this.ctx.arc(tip.x, tip.y, 4, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        });
     }
 
-    hideStatus() {
-        this.statusElement.classList.remove('active');
+    getBezierPoint(x0, y0, x1, y1, x2, y2, t) {
+        return {
+            x: (1 - t) * (1 - t) * x0 + 2 * (1 - t) * t * x1 + t * t * x2,
+            y: (1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * y1 + t * t * y2
+        };
+    }
+
+    stopAnimation() {
+        this.isAnimating = false;
+        this.activeArcs = [];
+        if (this.ctx) this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     wait(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    stop() {
-        if (this.currentAnimation) {
-            this.currentAnimation.kill();
-            this.currentAnimation = null;
-        }
-        this.hideStatus();
-        this.isAnimating = false;
+    triggerAnimation() {
+        if (this.idleTimer) clearTimeout(this.idleTimer);
+        this.startIdleAnimation();
     }
 }
 
-// Export AnimationController
 window.AnimationController = AnimationController;
