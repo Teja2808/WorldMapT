@@ -101,6 +101,8 @@ window.closeInfoPanel = () => {
     const panel = document.getElementById('info-panel');
     if (!panel.classList.contains('hidden')) {
         panel.classList.add('hidden');
+        // Restore previous layer if it was switched
+        window.appInstance?.mapManager.restorePreviousLayer();
         // Always zoom out when panel is explicitly closed
         window.appInstance?.mapManager.goHome();
     }
@@ -111,6 +113,8 @@ window.goHome = () => {
     const panel = document.getElementById('info-panel');
     if (!panel.classList.contains('hidden')) {
         panel.classList.add('hidden');
+        // Restore previous layer if it was switched
+        window.appInstance?.mapManager.restorePreviousLayer();
     }
     // Then zoom out
     window.appInstance?.mapManager.goHome();

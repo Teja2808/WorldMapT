@@ -9,6 +9,7 @@ class MapManager {
         };
         this.baseLayers = {};
         this.currentLayer = null;
+        this.previousLayer = null;
         this.rotationInterval = null;
         this.isRotating = false;
         this.worldBounds = L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180));
@@ -135,7 +136,7 @@ class MapManager {
 
     switchView(viewKey) {
         this.stopRotation();
-        
+
         if (viewKey === 'rotate') {
             this.startRotation();
             return;
@@ -154,10 +155,6 @@ class MapManager {
         document.body.className = `map-theme-${viewKey}`;
         const app = document.getElementById('app');
         if (app) app.className = `app-container map-theme-${viewKey}`;
-        
-        if (window.appInstance?.animationController) {
-            window.appInstance.animationController.updateTheme(viewKey);
-        }
     }
 
     startRotation() {
@@ -184,11 +181,13 @@ class MapManager {
     }
 
     addMarkers() {
+        console.log('Adding markers - companies:', window.locationData.companies.length, 'clients:', window.locationData.clients.length);
         window.locationData.companies.forEach(loc => this.addCompanyMarker(loc));
         window.locationData.clients.forEach(loc => this.addClientMarker(loc));
+        console.log('All markers added');
     }
 
-    async addCompanyMarker(location) {
+    addCompanyMarker(location) {
         const icon = L.divIcon({
             className: 'custom-marker-container',
             html: '<div class="custom-marker company pulse"><i class="ti ti-building"></i></div>',
@@ -196,18 +195,27 @@ class MapManager {
             iconAnchor: [20, 20]
         });
         const marker = L.marker(L.latLng(location.coordinates[1], location.coordinates[0]), { icon }).addTo(this.map);
-        marker.on('click', async () => {
-            this.map.flyTo([location.coordinates[1], location.coordinates[0]], 18, { duration: 1.5 });
-            this.map.once('moveend', async () => {
-                const content = await this.createPopupContent(location, 'company');
-                const pos = this.map.latLngToContainerPoint(marker.getLatLng());
-                this.showInSidePanel(content, { clientX: pos.x, clientY: pos.y });
+
+        const self = this;
+        marker.on('click', async function() {
+            // First, switch to satellite view if currently on vector map BEFORE flying
+            if (self.currentLayer === self.baseLayers.vector) {
+                self.previousLayer = self.baseLayers.vector;
+                self.switchView('satellite');
+                await new Promise(r => setTimeout(r, 200));
+            }
+
+            self.map.flyTo([location.coordinates[1], location.coordinates[0]], 18, { duration: 1.5 });
+            self.map.once('moveend', async () => {
+                const content = await self.createPopupContent(location, 'company');
+                const pos = self.map.latLngToContainerPoint(marker.getLatLng());
+                self.showInSidePanel(content, { clientX: pos.x, clientY: pos.y });
             });
         });
         this.markers.companies.push({ marker, location });
     }
 
-    async addClientMarker(location) {
+    addClientMarker(location) {
         const icon = L.divIcon({
             className: 'custom-marker-container',
             html: '<div class="custom-marker client"><i class="ti ti-users"></i></div>',
@@ -215,12 +223,21 @@ class MapManager {
             iconAnchor: [20, 20]
         });
         const marker = L.marker(L.latLng(location.coordinates[1], location.coordinates[0]), { icon }).addTo(this.map);
-        marker.on('click', async () => {
-            this.map.flyTo([location.coordinates[1], location.coordinates[0]], 18, { duration: 1.5 });
-            this.map.once('moveend', async () => {
-                const content = await this.createPopupContent(location, 'client');
-                const pos = this.map.latLngToContainerPoint(marker.getLatLng());
-                this.showInSidePanel(content, { clientX: pos.x, clientY: pos.y });
+
+        const self = this;
+        marker.on('click', async function() {
+            // First, switch to satellite view if currently on vector map BEFORE flying
+            if (self.currentLayer === self.baseLayers.vector) {
+                self.previousLayer = self.baseLayers.vector;
+                self.switchView('satellite');
+                await new Promise(r => setTimeout(r, 200));
+            }
+
+            self.map.flyTo([location.coordinates[1], location.coordinates[0]], 18, { duration: 1.5 });
+            self.map.once('moveend', async () => {
+                const content = await self.createPopupContent(location, 'client');
+                const pos = self.map.latLngToContainerPoint(marker.getLatLng());
+                self.showInSidePanel(content, { clientX: pos.x, clientY: pos.y });
             });
         });
         this.markers.clients.push({ marker, location });
@@ -248,76 +265,83 @@ class MapManager {
         const iconClass = isCompany ? 'company' : 'client';
         let details = '';
         let relatedData = '';
-        
+
+        console.log('createPopupContent called for:', location.name, 'Type:', type, 'Images:', location.images);
+
+        // Build basic details from location object
+        if (isCompany) {
+            details = `
+                <div class="popup-info"><i class="ti ti-map-pin"></i><span>${location.city}, ${location.country}</span></div>
+                ${location.employees ? `<div class="popup-info"><i class="ti ti-users"></i><span>${location.employees} employees</span></div>` : ''}
+                ${location.established ? `<div class="popup-info"><i class="ti ti-calendar"></i><span>Est. ${location.established}</span></div>` : ''}
+            `;
+        } else {
+            details = `
+                <div class="popup-info"><i class="ti ti-map-pin"></i><span>${location.city}, ${location.country}</span></div>
+                ${location.industry ? `<div class="popup-info"><i class="ti ti-briefcase"></i><span>${location.industry}</span></div>` : ''}
+                ${location.partnership_since ? `<div class="popup-info"><i class="ti ti-calendar"></i><span>Partner since ${location.partnership_since}</span></div>` : ''}
+            `;
+        }
+
+        // Try to fetch additional data asynchronously (won't block popup display)
         try {
             const response = await fetch(`http://localhost:3000/api/${isCompany ? 'offices' : 'clients'}/${location.id}`);
-            const data = await response.json();
-            
-            if (isCompany) {
-                details = `
-                    <div class="popup-info"><i class="ti ti-map-pin"></i><span>${location.city}, ${location.country}</span></div>
-                    ${location.employees ? `<div class="popup-info"><i class="ti ti-users"></i><span>${location.employees} employees</span></div>` : ''}
-                    ${location.established ? `<div class="popup-info"><i class="ti ti-calendar"></i><span>Est. ${location.established}</span></div>` : ''}
-                `;
-                
+            if (response.ok) {
+                const data = await response.json();
                 if (data.visits?.length) {
-                    relatedData = `
-                        <div class="popup-section-title"><i class="ti ti-calendar-event"></i> Recent Visits</div>
-                        <div class="popup-visits-list">
-                            ${data.visits.map(v => `
-                                <div class="visit-card">
-                                    <div class="visit-header">
-                                        <strong>${v.client?.name || 'Unknown'}</strong>
-                                        <span class="visit-date">${new Date(v.visitDate).toLocaleDateString()}</span>
-                                    </div>
-                                    ${v.images?.length ? `
-                                        <div class="popup-slider-container">
-                                            <div class="popup-slider">
-                                                ${v.images.map((img, idx) => `<div class="popup-slider-item mini"><img src="${img}" onclick="openLightbox(${JSON.stringify(v.images).replace(/"/g, '&quot;')}, ${idx}); event.stopPropagation();"></div>`).join('')}
-                                            </div>
+                    if (isCompany) {
+                        relatedData = `
+                            <div class="popup-section-title"><i class="ti ti-calendar-event"></i> Recent Visits</div>
+                            <div class="popup-visits-list">
+                                ${data.visits.map(v => `
+                                    <div class="visit-card">
+                                        <div class="visit-header">
+                                            <strong>${v.client?.name || 'Unknown'}</strong>
+                                            <span class="visit-date">${new Date(v.visitDate).toLocaleDateString()}</span>
                                         </div>
-                                    ` : ''}
-                                </div>
-                            `).join('')}
-                        </div>
-                    `;
-                }
-            } else {
-                details = `
-                    <div class="popup-info"><i class="ti ti-map-pin"></i><span>${location.city}, ${location.country}</span></div>
-                    ${location.industry ? `<div class="popup-info"><i class="ti ti-briefcase"></i><span>${location.industry}</span></div>` : ''}
-                    ${location.partnership_since ? `<div class="popup-info"><i class="ti ti-calendar"></i><span>Partner since ${location.partnership_since}</span></div>` : ''}
-                `;
-                
-                if (data.visits?.length) {
-                    relatedData = `
-                        <div class="popup-section-title"><i class="ti ti-building"></i> Visited Offices</div>
-                        <div class="popup-visits-list">
-                            ${data.visits.map(v => `
-                                <div class="visit-card">
-                                    <div class="visit-header">
-                                        <strong>${v.office?.name || 'Unknown'}</strong>
-                                        <span class="visit-date">${new Date(v.visitDate).toLocaleDateString()}</span>
-                                    </div>
-                                    ${v.images?.length ? `
-                                        <div class="popup-slider-container">
-                                            <div class="popup-slider">
-                                                ${v.images.map((img, idx) => `<div class="popup-slider-item mini"><img src="${img}" onclick="openLightbox(${JSON.stringify(v.images).replace(/"/g, '&quot;')}, ${idx}); event.stopPropagation();"></div>`).join('')}
+                                        ${v.images?.length ? `
+                                            <div class="popup-slider-container" data-images='${JSON.stringify(v.images)}'>
+                                                <div class="popup-slider">
+                                                    ${v.images.map((img, idx) => `<div class="popup-slider-item mini"><img src="${img}" style="cursor: pointer;" data-index="${idx}" class="popup-image"></div>`).join('')}
+                                                </div>
                                             </div>
+                                        ` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    } else {
+                        relatedData = `
+                            <div class="popup-section-title"><i class="ti ti-building"></i> Visited Offices</div>
+                            <div class="popup-visits-list">
+                                ${data.visits.map(v => `
+                                    <div class="visit-card">
+                                        <div class="visit-header">
+                                            <strong>${v.office?.name || 'Unknown'}</strong>
+                                            <span class="visit-date">${new Date(v.visitDate).toLocaleDateString()}</span>
                                         </div>
-                                    ` : ''}
-                                </div>
-                            `).join('')}
-                        </div>
-                    `;
+                                        ${v.images?.length ? `
+                                            <div class="popup-slider-container" data-images='${JSON.stringify(v.images)}'>
+                                                <div class="popup-slider">
+                                                    ${v.images.map((img, idx) => `<div class="popup-slider-item mini"><img src="${img}" style="cursor: pointer;" data-index="${idx}" class="popup-image"></div>`).join('')}
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
                 }
             }
-        } catch (e) {}
+        } catch (e) {
+            console.log('Could not load additional visit data, showing basic popup');
+        }
 
         const imagesHTML = location.images?.length ? `
-            <div class="popup-slider-container main">
+            <div class="popup-slider-container main" data-images='${JSON.stringify(location.images)}'>
                 <div class="popup-slider">
-                    ${location.images.map((img, idx) => `<div class="popup-slider-item"><img src="${img}" onclick="openLightbox(${JSON.stringify(location.images).replace(/"/g, '&quot;')}, ${idx})"></div>`).join('')}
+                    ${location.images.map((img, idx) => `<div class="popup-slider-item"><img src="${img}" style="cursor: pointer;" data-index="${idx}" class="popup-image"></div>`).join('')}
                 </div>
             </div>
         ` : '';
@@ -342,6 +366,14 @@ class MapManager {
 
     goHome() { this.stopRotation(); this.map.flyTo([35, 0], 3, { duration: 1.5 }); }
     resetMap() { this.stopRotation(); this.map.flyTo([35, 0], 3, { duration: 1.5 }); }
+
+    restorePreviousLayer() {
+        if (this.previousLayer && this.previousLayer === this.baseLayers.vector) {
+            this.switchView('vector');
+            this.previousLayer = null;
+        }
+    }
+
     toggleMarkers(type, isVisible) {
         const markerList = type === 'offices' ? this.markers.companies : this.markers.clients;
         markerList.forEach(item => isVisible ? item.marker.addTo(this.map) : this.map.removeLayer(item.marker));

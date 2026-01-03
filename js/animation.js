@@ -5,7 +5,7 @@ class AnimationController {
         this.mapManager = mapManager;
         this.isAnimating = false;
         this.idleTimer = null;
-        this.idleDelay = 5000; // 15 seconds
+        this.idleDelay = 15000; // 15 seconds
         this.currentPhase = 'offices'; // 'offices' or 'clients'
         this.activeArcs = [];
         this.canvas = null;

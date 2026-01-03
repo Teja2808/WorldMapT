@@ -102,6 +102,17 @@ document.addEventListener('click', (e) => {
     if (e.target === modal) {
         closeLightbox();
     }
+
+    // Handle popup image clicks
+    if (e.target.classList.contains('popup-image')) {
+        const container = e.target.closest('[data-images]');
+        if (container) {
+            const images = JSON.parse(container.getAttribute('data-images'));
+            const index = parseInt(e.target.getAttribute('data-index'), 10);
+            openLightbox(images, index);
+            e.stopPropagation();
+        }
+    }
 });
 
 // Touch/Drag support for lightbox and popup sliders
