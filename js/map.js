@@ -231,15 +231,14 @@ class MapManager {
         const contentArea = document.getElementById('info-panel-content');
         contentArea.innerHTML = content;
         panel.scrollTop = 0;
-        const x = event.clientX;
-        const y = event.clientY;
-        let left = x - 530; 
-        let top = y - 100;
-        if (x < 550) left = x + 30;
-        if (top + 500 > window.innerHeight) top = window.innerHeight - 520;
-        if (top < 20) top = 20;
+
+        // Position panel on left side, spanning full height
+        const left = 20;
+        const top = 80;
+
         panel.style.left = `${left}px`;
         panel.style.top = `${top}px`;
+        panel.style.maxHeight = `calc(100vh - ${top + 20}px)`;
         panel.classList.remove('hidden');
     }
 

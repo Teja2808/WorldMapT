@@ -8,41 +8,96 @@
     <link rel="stylesheet" href="styles/admin.css">
 </head>
 <body>
-    <div class="admin-container">
-        <!-- Header -->
-        <header class="admin-header">
-            <div class="header-left">
-                <h1><i class="ti ti-shield-lock"></i> Admin Panel</h1>
-                <span class="admin-user"><i class="ti ti-user"></i> <span id="admin-username"></span></span>
-            </div>
-            <div class="header-actions">
-                <a href="index.html" class="btn-link"><i class="ti ti-map"></i> View Map</a>
-                <button onclick="logout()" class="btn-logout"><i class="ti ti-logout"></i> Logout</button>
-            </div>
-        </header>
+    <!-- Header -->
+    <header class="admin-header">
+        <div class="header-left">
+            <h1><i class="ti ti-shield-lock"></i> Admin Panel</h1>
+            <span class="admin-user"><i class="ti ti-user"></i> <span id="admin-username"></span></span>
+        </div>
+        <div class="header-actions">
+            <a href="index.html" class="btn-link"><i class="ti ti-map"></i> View Map</a>
+            <button onclick="logout()" class="btn-logout"><i class="ti ti-logout"></i> Logout</button>
+        </div>
+    </header>
 
-        <!-- Navigation Tabs -->
-        <nav class="admin-nav">
-            <button class="tab-btn active" data-tab="offices">
-                <i class="ti ti-building"></i> Offices
-            </button>
-            <button class="tab-btn" data-tab="clients">
-                <i class="ti ti-users"></i> Clients
-            </button>
-            <button class="tab-btn" data-tab="visits">
-                <i class="ti ti-calendar-event"></i> Visits
-            </button>
-        </nav>
+    <div class="admin-wrapper">
+        <!-- Left Sidebar Navigation -->
+        <aside class="admin-sidebar">
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-tab="dashboard">
+                    <i class="ti ti-dashboard"></i>
+                    <span>Dashboard</span>
+                </button>
+                <div class="nav-section-title">Management</div>
+                <button class="nav-item" data-tab="offices">
+                    <i class="ti ti-building"></i>
+                    <span>Offices</span>
+                </button>
+                <button class="nav-item" data-tab="clients">
+                    <i class="ti ti-users"></i>
+                    <span>Clients</span>
+                </button>
+                <button class="nav-item" data-tab="visits">
+                    <i class="ti ti-calendar-event"></i>
+                    <span>Visits</span>
+                </button>
+            </nav>
+        </aside>
 
-        <!-- Content Area -->
+        <!-- Main Content Area -->
         <main class="admin-content">
+            <!-- Dashboard Tab -->
+            <section id="dashboard-tab" class="tab-content active">
+                <div class="section-header">
+                    <h2>Dashboard</h2>
+                </div>
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon offices">
+                            <i class="ti ti-building"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Offices</div>
+                            <div class="stat-value" id="stat-offices">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon clients">
+                            <i class="ti ti-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Clients</div>
+                            <div class="stat-value" id="stat-clients">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon visits">
+                            <i class="ti ti-calendar-event"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Visits</div>
+                            <div class="stat-value" id="stat-visits">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recent-section">
+                    <h3>Recent Client Visits</h3>
+                    <div id="recent-visits" class="recent-visits-list"></div>
+                </div>
+            </section>
+
             <!-- Offices Tab -->
-            <section id="offices-tab" class="tab-content active">
+            <section id="offices-tab" class="tab-content">
                 <div class="section-header">
                     <h2>Manage Offices</h2>
                     <button class="btn-primary" onclick="openOfficeForm()">
                         <i class="ti ti-plus"></i> Add Office
                     </button>
+                </div>
+                <div class="search-bar">
+                    <i class="ti ti-search"></i>
+                    <input type="text" id="offices-search" placeholder="Search by name, city, or country..." class="search-input">
                 </div>
                 <div id="offices-list" class="data-grid"></div>
             </section>
@@ -55,6 +110,10 @@
                         <i class="ti ti-plus"></i> Add Client
                     </button>
                 </div>
+                <div class="search-bar">
+                    <i class="ti ti-search"></i>
+                    <input type="text" id="clients-search" placeholder="Search by name, city, or industry..." class="search-input">
+                </div>
                 <div id="clients-list" class="data-grid"></div>
             </section>
 
@@ -66,9 +125,14 @@
                         <i class="ti ti-plus"></i> Add Visit
                     </button>
                 </div>
+                <div class="search-bar">
+                    <i class="ti ti-search"></i>
+                    <input type="text" id="visits-search" placeholder="Search by client, office, or purpose..." class="search-input">
+                </div>
                 <div id="visits-list" class="data-grid"></div>
             </section>
         </main>
+    </div>
     </div>
 
     <!-- Office Form Modal -->

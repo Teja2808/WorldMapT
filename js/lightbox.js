@@ -43,15 +43,16 @@ function prevImage() {
 function updateLightboxImage() {
     const image = document.getElementById('lightbox-image');
     const current = document.getElementById('lightbox-current');
-    
+
     // Fade out
     image.style.opacity = '0';
-    
+    image.style.transition = 'opacity 0.2s ease';
+
     setTimeout(() => {
         image.src = currentImages[currentImageIndex];
         current.textContent = currentImageIndex + 1;
         updateNavigationButtons();
-        
+
         // Fade in
         image.style.opacity = '1';
     }, 200);
@@ -95,6 +96,62 @@ document.addEventListener('click', (e) => {
     const modal = document.getElementById('lightbox-modal');
     if (e.target === modal) {
         closeLightbox();
+    }
+});
+
+// Touch/Drag support for lightbox and popup sliders
+let touchStartX = 0;
+let touchEndX = 0;
+
+function handleSwipe() {
+    const modal = document.getElementById('lightbox-modal');
+    if (!modal.classList.contains('active')) return;
+
+    if (touchEndX < touchStartX - 50) {
+        // Swiped left - show next image
+        nextImage();
+    } else if (touchEndX > touchStartX + 50) {
+        // Swiped right - show previous image
+        prevImage();
+    }
+}
+
+document.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+}, false);
+
+document.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+}, false);
+
+// Drag support for popup sliders
+document.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.popup-slider')) {
+        const slider = e.target.closest('.popup-slider');
+        let isDown = true;
+        let startX = e.pageX - slider.offsetLeft;
+        let scrollLeft = slider.scrollLeft;
+
+        slider.classList.add('active');
+
+        const mousemove = (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - slider.offsetLeft;
+            const walk = (x - startX) * 1;
+            slider.scrollLeft = scrollLeft - walk;
+        };
+
+        const mouseup = () => {
+            isDown = false;
+            slider.classList.remove('active');
+            document.removeEventListener('mousemove', mousemove);
+            document.removeEventListener('mouseup', mouseup);
+        };
+
+        document.addEventListener('mousemove', mousemove);
+        document.addEventListener('mouseup', mouseup);
     }
 });
 

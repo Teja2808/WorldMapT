@@ -86,20 +86,18 @@ class AnimationController {
                 );
                 await this.animateLocations(sortedOffices, '#00D9FF');
                 if (!this.isAnimating) break;
-                await this.wait(2000);
                 this.activeArcs = [];
             }
-            
+
             // Client Phase - Sorted by Country
             const clientsEnabled = document.getElementById('filter-clients').checked;
             if (clientsEnabled) {
                 this.currentPhase = 'clients';
-                const sortedClients = [...window.locationData.clients].sort((a, b) => 
+                const sortedClients = [...window.locationData.clients].sort((a, b) =>
                     a.country.localeCompare(b.country) || a.city.localeCompare(b.city)
                 );
                 await this.animateLocations(sortedClients, '#FF6B9D');
                 if (!this.isAnimating) break;
-                await this.wait(2000);
                 this.activeArcs = [];
             }
 
@@ -121,7 +119,7 @@ class AnimationController {
             const end = locations[i + 1];
             
             await this.draw3DArc(start.coordinates, end.coordinates, color);
-            await this.wait(800); 
+            await this.wait(400); 
         }
         await this.wait(2500);
     }
@@ -137,7 +135,7 @@ class AnimationController {
                 end: endLatLng,
                 color: color,
                 progress: 0,
-                duration: 2000
+                duration: 1000
             };
             
             this.activeArcs.push(arc);
