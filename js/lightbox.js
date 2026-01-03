@@ -61,19 +61,24 @@ function updateLightboxImage() {
 function updateNavigationButtons() {
     const prevBtn = document.querySelector('.lightbox-prev');
     const nextBtn = document.querySelector('.lightbox-next');
-    
+
     if (currentImages.length <= 1) {
         prevBtn.style.display = 'none';
         nextBtn.style.display = 'none';
     } else {
         prevBtn.style.display = 'flex';
         nextBtn.style.display = 'flex';
-        
-        prevBtn.style.opacity = currentImageIndex === 0 ? '0.3' : '1';
-        prevBtn.style.cursor = currentImageIndex === 0 ? 'not-allowed' : 'pointer';
-        
-        nextBtn.style.opacity = currentImageIndex === currentImages.length - 1 ? '0.3' : '1';
-        nextBtn.style.cursor = currentImageIndex === currentImages.length - 1 ? 'not-allowed' : 'pointer';
+
+        const isFirstImage = currentImageIndex === 0;
+        const isLastImage = currentImageIndex === currentImages.length - 1;
+
+        prevBtn.style.opacity = isFirstImage ? '0.3' : '1';
+        prevBtn.style.cursor = isFirstImage ? 'not-allowed' : 'pointer';
+        prevBtn.style.pointerEvents = isFirstImage ? 'none' : 'auto';
+
+        nextBtn.style.opacity = isLastImage ? '0.3' : '1';
+        nextBtn.style.cursor = isLastImage ? 'not-allowed' : 'pointer';
+        nextBtn.style.pointerEvents = isLastImage ? 'none' : 'auto';
     }
 }
 
@@ -102,25 +107,41 @@ document.addEventListener('click', (e) => {
 // Touch/Drag support for lightbox and popup sliders
 let touchStartX = 0;
 let touchEndX = 0;
+let touchStartTime = 0;
 
 function handleSwipe() {
     const modal = document.getElementById('lightbox-modal');
     if (!modal.classList.contains('active')) return;
 
-    if (touchEndX < touchStartX - 50) {
-        // Swiped left - show next image
-        nextImage();
-    } else if (touchEndX > touchStartX + 50) {
-        // Swiped right - show previous image
-        prevImage();
+    const swipeThreshold = 30; // Minimum swipe distance in pixels
+    const timeTolerance = 300; // Maximum time for a swipe in milliseconds
+    const distance = Math.abs(touchEndX - touchStartX);
+    const time = Date.now() - touchStartTime;
+
+    // Only register as swipe if distance is large enough and time is quick enough
+    if (distance > swipeThreshold && time < timeTolerance) {
+        if (touchEndX < touchStartX - swipeThreshold) {
+            // Swiped left - show next image
+            nextImage();
+        } else if (touchEndX > touchStartX + swipeThreshold) {
+            // Swiped right - show previous image
+            prevImage();
+        }
     }
 }
 
 document.addEventListener('touchstart', (e) => {
+    const modal = document.getElementById('lightbox-modal');
+    if (!modal.classList.contains('active')) return;
+
     touchStartX = e.changedTouches[0].screenX;
+    touchStartTime = Date.now();
 }, false);
 
 document.addEventListener('touchend', (e) => {
+    const modal = document.getElementById('lightbox-modal');
+    if (!modal.classList.contains('active')) return;
+
     touchEndX = e.changedTouches[0].screenX;
     handleSwipe();
 }, false);
