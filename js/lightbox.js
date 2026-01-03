@@ -3,6 +3,110 @@
 let currentImages = [];
 let currentImageIndex = 0;
 
+// Split View Mode Variables
+let isSplitViewActive = false;
+let splitViewImages = [];
+let splitViewIndex = 0;
+
+function openSplitView(images, startIndex = 0) {
+    isSplitViewActive = true;
+    splitViewImages = images;
+    splitViewIndex = startIndex;
+
+    const panel = document.getElementById('info-panel');
+    const viewer = document.getElementById('image-viewer-panel');
+    const image = document.getElementById('viewer-image');
+    const current = document.getElementById('viewer-current');
+    const total = document.getElementById('viewer-total');
+
+    // Add split-mode class to info panel
+    panel.classList.add('split-mode');
+
+    // Display image viewer panel
+    viewer.classList.add('active');
+    image.src = splitViewImages[splitViewIndex];
+    current.textContent = splitViewIndex + 1;
+    total.textContent = splitViewImages.length;
+
+    // Update button states
+    updateSplitViewNavigationButtons();
+}
+
+function closeSplitView() {
+    isSplitViewActive = false;
+
+    const panel = document.getElementById('info-panel');
+    const viewer = document.getElementById('image-viewer-panel');
+
+    // Remove split-mode class from info panel
+    panel.classList.remove('split-mode');
+
+    // Hide image viewer panel
+    viewer.classList.remove('active');
+
+    // Reset state
+    splitViewImages = [];
+    splitViewIndex = 0;
+}
+
+function nextSplitImage() {
+    if (splitViewIndex < splitViewImages.length - 1) {
+        splitViewIndex++;
+        updateSplitViewImage();
+    }
+}
+
+function prevSplitImage() {
+    if (splitViewIndex > 0) {
+        splitViewIndex--;
+        updateSplitViewImage();
+    }
+}
+
+function updateSplitViewImage() {
+    const image = document.getElementById('viewer-image');
+    const current = document.getElementById('viewer-current');
+
+    // Fade out
+    image.style.opacity = '0';
+    image.style.transition = 'opacity 0.2s ease';
+
+    setTimeout(() => {
+        image.src = splitViewImages[splitViewIndex];
+        current.textContent = splitViewIndex + 1;
+        updateSplitViewNavigationButtons();
+
+        // Fade in
+        image.style.opacity = '1';
+    }, 200);
+}
+
+function updateSplitViewNavigationButtons() {
+    const prevBtn = document.querySelector('.viewer-prev');
+    const nextBtn = document.querySelector('.viewer-next');
+
+    if (splitViewImages.length <= 1) {
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
+    } else {
+        prevBtn.style.display = 'flex';
+        nextBtn.style.display = 'flex';
+
+        const isFirstImage = splitViewIndex === 0;
+        const isLastImage = splitViewIndex === splitViewImages.length - 1;
+
+        prevBtn.disabled = isFirstImage;
+        prevBtn.style.opacity = isFirstImage ? '0.3' : '1';
+        prevBtn.style.cursor = isFirstImage ? 'not-allowed' : 'pointer';
+        prevBtn.style.pointerEvents = isFirstImage ? 'none' : 'auto';
+
+        nextBtn.disabled = isLastImage;
+        nextBtn.style.opacity = isLastImage ? '0.3' : '1';
+        nextBtn.style.cursor = isLastImage ? 'not-allowed' : 'pointer';
+        nextBtn.style.pointerEvents = isLastImage ? 'none' : 'auto';
+    }
+}
+
 function openLightbox(images, startIndex = 0) {
     currentImages = images;
     currentImageIndex = startIndex;
@@ -85,14 +189,28 @@ function updateNavigationButtons() {
 // Keyboard navigation
 document.addEventListener('keydown', (e) => {
     const modal = document.getElementById('lightbox-modal');
-    if (!modal.classList.contains('active')) return;
-    
-    if (e.key === 'Escape') {
-        closeLightbox();
-    } else if (e.key === 'ArrowLeft') {
-        prevImage();
-    } else if (e.key === 'ArrowRight') {
-        nextImage();
+    const viewer = document.getElementById('image-viewer-panel');
+
+    // Handle lightbox keyboard navigation
+    if (modal.classList.contains('active')) {
+        if (e.key === 'Escape') {
+            closeLightbox();
+        } else if (e.key === 'ArrowLeft') {
+            prevImage();
+        } else if (e.key === 'ArrowRight') {
+            nextImage();
+        }
+    }
+
+    // Handle split view keyboard navigation
+    if (viewer.classList.contains('active')) {
+        if (e.key === 'Escape') {
+            closeSplitView();
+        } else if (e.key === 'ArrowLeft') {
+            prevSplitImage();
+        } else if (e.key === 'ArrowRight') {
+            nextSplitImage();
+        }
     }
 });
 
@@ -109,7 +227,17 @@ document.addEventListener('click', (e) => {
         if (container) {
             const images = JSON.parse(container.getAttribute('data-images'));
             const index = parseInt(e.target.getAttribute('data-index'), 10);
-            openLightbox(images, index);
+
+            // Check if click is from within the info panel
+            const isFromInfoPanel = e.target.closest('#info-panel') !== null;
+
+            if (isFromInfoPanel) {
+                // Open split view if clicked from popup
+                openSplitView(images, index);
+            } else {
+                // Open full-screen lightbox otherwise
+                openLightbox(images, index);
+            }
             e.stopPropagation();
         }
     }
@@ -192,3 +320,7 @@ window.openLightbox = openLightbox;
 window.closeLightbox = closeLightbox;
 window.nextImage = nextImage;
 window.prevImage = prevImage;
+window.openSplitView = openSplitView;
+window.closeSplitView = closeSplitView;
+window.nextSplitImage = nextSplitImage;
+window.prevSplitImage = prevSplitImage;

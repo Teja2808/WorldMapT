@@ -93,6 +93,19 @@
             <div id="info-panel-content"></div>
         </div>
 
+        <!-- Image Viewer Panel (Split View) -->
+        <div id="image-viewer-panel" class="image-viewer-panel">
+            <button class="viewer-close" onclick="closeSplitView()"><i class="ti ti-x"></i></button>
+            <button class="viewer-prev" onclick="prevSplitImage()"><i class="ti ti-chevron-left"></i></button>
+            <button class="viewer-next" onclick="nextSplitImage()"><i class="ti ti-chevron-right"></i></button>
+            <div class="viewer-image-container">
+                <img id="viewer-image" src="" alt="">
+            </div>
+            <div class="viewer-counter">
+                <span id="viewer-current">1</span> / <span id="viewer-total">1</span>
+            </div>
+        </div>
+
         <div id="legend-panel" class="legend-panel mini">
             <div class="legend-items">
                 <div class="filter-group">

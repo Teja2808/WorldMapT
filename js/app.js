@@ -101,6 +101,10 @@ window.closeInfoPanel = () => {
     const panel = document.getElementById('info-panel');
     if (!panel.classList.contains('hidden')) {
         panel.classList.add('hidden');
+        // Close split view if active
+        if (window.closeSplitView) {
+            window.closeSplitView();
+        }
         // Restore previous layer if it was switched
         window.appInstance?.mapManager.restorePreviousLayer();
         // Always zoom out when panel is explicitly closed
@@ -113,6 +117,10 @@ window.goHome = () => {
     const panel = document.getElementById('info-panel');
     if (!panel.classList.contains('hidden')) {
         panel.classList.add('hidden');
+        // Close split view if active
+        if (window.closeSplitView) {
+            window.closeSplitView();
+        }
         // Restore previous layer if it was switched
         window.appInstance?.mapManager.restorePreviousLayer();
     }

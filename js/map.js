@@ -247,9 +247,27 @@ class MapManager {
         contentArea.innerHTML = content;
         panel.scrollTop = 0;
 
-        // Position panel on left side, spanning full height
-        const left = 20;
-        const top = 80;
+        // Dynamic positioning based on marker location
+        const panelWidth = 550;
+        const gap = 30; // 30px gap between marker and panel
+        const minLeftPadding = 10; // Minimum distance from left edge
+        const topPadding = 420; // Fixed top position
+
+        // Calculate position: panel goes to the left of marker with 30px gap
+        let left = event.clientX - panelWidth - gap;
+
+        // Position popup at the top of the page
+        let top = topPadding;
+
+        // Boundary checks
+        if (left < minLeftPadding) {
+            left = minLeftPadding;
+        }
+
+        const maxTop = window.innerHeight - 300;
+        if (top > maxTop) {
+            top = maxTop;
+        }
 
         panel.style.left = `${left}px`;
         panel.style.top = `${top}px`;
