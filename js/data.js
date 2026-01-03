@@ -6,6 +6,23 @@ window.locationData = {
     clients: []
 };
 
+// Normalize country names to handle variations (e.g., "USA" vs "United States")
+function normalizeCountryName(country) {
+    if (!country) return country;
+
+    const countryMap = {
+        'usa': 'United States',
+        'us': 'United States',
+        'u.s.a': 'United States',
+        'u.s.a.': 'United States',
+        'uk': 'United Kingdom',
+        'u.k.': 'United Kingdom'
+    };
+
+    const normalized = countryMap[country.toLowerCase().trim()] || country;
+    return normalized;
+}
+
 // Load data from API
 async function loadLocationData() {
     try {
@@ -24,7 +41,7 @@ async function loadLocationData() {
             id: office._id,
             name: office.name,
             city: office.city,
-            country: office.country,
+            country: normalizeCountryName(office.country),
             coordinates: office.coordinates,
             description: office.description,
             employees: office.employees,
@@ -36,7 +53,7 @@ async function loadLocationData() {
             id: client._id,
             name: client.name,
             city: client.city,
-            country: client.country,
+            country: normalizeCountryName(client.country),
             coordinates: client.coordinates,
             description: client.description,
             industry: client.industry,

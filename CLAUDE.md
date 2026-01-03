@@ -4,22 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an interactive world map application that tracks office and client locations globally. It's a full-stack Node.js application with Express backend, MongoDB database, and a Leaflet.js-based frontend for interactive map visualization.
+This is an interactive world map application that tracks office and client locations globally. It's a hybrid full-stack Node.js application with Express backend, MongoDB database, and Leaflet.js-based frontend for interactive map visualization. The application supports both a persistent MongoDB backend and in-browser localStorage fallback for data persistence.
 
 ## Development Commands
 
-### Starting the Application
+- **Development mode with auto-reload**: `npm run dev` - Runs server with nodemon for file change detection
+- **Production mode**: `npm start` - Direct node execution without auto-reload
+- **Seed database**: `npm run seed` - Clears all data and populates with sample offices, clients, and visits
 
-- **Development mode with auto-reload**: `npm run dev` - Uses nodemon to watch for file changes
-- **Production mode**: `npm start` - Runs the server directly
-- **Seed database**: `npm run seed` - Populates initial test data
+**Note**: No linting, testing, or build tools are currently configured.
 
-### Server Information
+### Server
 
-- Default port: 3000 (configurable via `PORT` environment variable)
-- Main entry point: [server.js](server.js)
-- Admin panel: `http://localhost:3000/admin`
-- Map view: `http://localhost:3000`
+- **Port**: 3000 (configurable via `PORT` in `.env`)
+- **Entry point**: [server.js](server.js)
+- **Admin panel**: http://localhost:3000/admin
+- **Map view**: http://localhost:3000
+- **Database**: Configured via `MONGODB_URI` in `.env` (defaults to local MongoDB)
 
 ## Architecture Overview
 
@@ -45,18 +46,16 @@ This is an interactive world map application that tracks office and client locat
 - Multiple tile layer options: CartoDB Dark, Esri Satellite, Esri Terrain
 - Custom marker clustering and icon management
 
-**Frontend Files:**
-- [index.html](index.html) - Main map view with interactive features
-- [admin.html](admin.html) - Administrative panel for data management
-- [login.html](login.html) - User authentication page
-- `js/` - Frontend JavaScript modules:
-  - [js/map.js](js/map.js) - MapManager class handling Leaflet initialization, layer management, and marker rendering
-  - [js/app.js](js/app.js) - Main application logic
-  - [js/data.js](js/data.js) - API communication and data fetching
-  - [js/admin.js](js/admin.js) - Admin panel functionality
-  - [js/animation.js](js/animation.js) - Visual animations
-  - [js/storage.js](js/storage.js) - Client-side state management
-  - [js/lightbox.js](js/lightbox.js) - Image gallery viewer
+**Frontend Architecture:**
+- [index.html](index.html) - Main map view
+- [admin.html](admin.html) - Data management interface
+- [js/map.js](js/map.js) - MapManager class (Leaflet initialization, layer switching, marker/cluster rendering)
+- [js/app.js](js/app.js) - Main application initialization and event coordination
+- [js/data.js](js/data.js) - API communication layer
+- [js/admin.js](js/admin.js) - Admin panel form handling and CRUD operations
+- [js/storage.js](js/storage.js) - localStorage fallback for offline/demo mode
+- [js/animation.js](js/animation.js) - UI transitions and visual effects
+- [js/lightbox.js](js/lightbox.js) - Image gallery modal viewer
 
 ### Data Models
 
@@ -130,16 +129,46 @@ NODE_ENV=development
 
 See [.env](.env) for the current configuration.
 
+## Key Architectural Patterns
+
+### Coordinate System
+All location data uses `[longitude, latitude]` format in MongoDB (GeoJSON standard). The frontend Leaflet map uses `[latitude, longitude]` so conversion occurs at the data boundary (e.g., in [js/data.js](js/data.js) when fetching data).
+
+### Hybrid Data Storage
+The application supports two modes:
+- **With MongoDB**: Full backend with persistent data across sessions (normal operation)
+- **Without MongoDB**: Falls back to browser localStorage via [js/storage.js](js/storage.js) - useful for demos or offline operation
+
+### Frontend-Backend Communication
+The frontend primarily uses `fetch()` calls to `/api/` endpoints. [js/data.js](js/data.js) handles API communication. If API calls fail, the application gracefully degrades to localStorage.
+
+### Image Management
+- Images upload to `uploads/offices/` or `uploads/clients/` directories via multer middleware
+- Filenames follow pattern: `{resource-type}-{timestamp}-{random}.{ext}`
+- Updates preserve existing images by default; removal via `existingImages` parameter
+- File size limit: 5MB per file, max 5 files per upload
+
+### Timestamps and Updates
+[models/Office.js](models/Office.js) and [models/Client.js](models/Client.js) have pre-save hooks that automatically update the `updatedAt` timestamp.
+
+### Marker Rendering
+[js/map.js](js/map.js) MapManager class renders offices and clients as separate marker groups, supporting different icons and behaviors. Includes layer rotation between CartoDB Dark, Esri Satellite, and Esri Terrain tile layers.
+
 ## Important Implementation Notes
 
-1. **Coordinate System**: All location data uses [longitude, latitude] format, which is standard for GeoJSON. The Leaflet map uses [latitude, longitude] so conversion occurs in the frontend.
+### Frontend-Backend Flow
+1. Frontend fetches data via [js/data.js](js/data.js) using `fetch()` to `/api/` endpoints
+2. [js/map.js](js/map.js) MapManager receives data and renders markers using Leaflet
+3. On API failure, [js/storage.js](js/storage.js) provides localStorage fallback
+4. Admin panel ([js/admin.js](js/admin.js)) handles CRUD operations and image uploads
 
-2. **Image Management**: Images are served statically from `/uploads/` endpoint. Update operations preserve existing images unless explicitly removed.
+### Coordinate Conversion
+Critical: MongoDB stores `[longitude, latitude]` (GeoJSON standard), but Leaflet map expects `[latitude, longitude]`. Conversion happens at the data boundary in [js/data.js](js/data.js) when fetching and before sending to API.
 
-3. **Mongoose Hooks**: Pre-save hooks automatically update the `updatedAt` timestamp on both Office and Client models.
+### Layer Management
+[js/map.js](js/map.js) implements tile layer rotation between:
+- CartoDB Dark (default)
+- Esri Satellite
+- Esri Terrain
 
-4. **Visit Population**: The visits API uses Mongoose `.populate('clientId')` to include full client details in responses.
-
-5. **Map Layer Rotation**: The MapManager class supports rotating between different tile layers (dark, satellite, green).
-
-6. **Error Handling**: Express error middleware catches unhandled errors and returns 500 status with error messages.
+Layer toggle logic should preserve current markers across switches.

@@ -20,11 +20,28 @@ class App {
         
         // Ensure counts are updated after data is definitely loaded
         const updateHeaderCounts = () => {
-            const officeEl = document.getElementById('header-office-count');
-            const clientEl = document.getElementById('header-client-count');
-            
-            if (officeEl) officeEl.textContent = window.locationData.companies.length;
-            if (clientEl) clientEl.textContent = window.locationData.clients.length;
+            const officeCountEl = document.getElementById('header-office-count');
+            const clientCountEl = document.getElementById('header-client-count');
+            const officeCountriesEl = document.getElementById('header-office-countries');
+            const clientCountriesEl = document.getElementById('header-client-countries');
+
+            // Count total offices
+            if (officeCountEl) officeCountEl.textContent = window.locationData.companies.length;
+
+            // Count total clients
+            if (clientCountEl) clientCountEl.textContent = window.locationData.clients.length;
+
+            // Count unique countries for offices (filter out empty/null values)
+            const officeCountries = new Set(window.locationData.companies
+                .map(c => c.country)
+                .filter(country => country && country.trim()));
+            if (officeCountriesEl) officeCountriesEl.textContent = officeCountries.size;
+
+            // Count unique countries for clients (filter out empty/null values)
+            const clientCountries = new Set(window.locationData.clients
+                .map(c => c.country)
+                .filter(country => country && country.trim()));
+            if (clientCountriesEl) clientCountriesEl.textContent = clientCountries.size;
         };
 
         // Try updating immediately and also after a short delay to be safe
