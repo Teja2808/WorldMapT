@@ -198,11 +198,10 @@ class MapManager {
 
         const self = this;
         marker.on('click', async function() {
-            // First, switch to satellite view if currently on vector map BEFORE flying
+            // Switch to satellite view and zoom simultaneously if on vector map
             if (self.currentLayer === self.baseLayers.vector) {
                 self.previousLayer = self.baseLayers.vector;
                 self.switchView('satellite');
-                await new Promise(r => setTimeout(r, 200));
             }
 
             self.map.flyTo([location.coordinates[1], location.coordinates[0]], 18, { duration: 1.5 });
@@ -226,11 +225,10 @@ class MapManager {
 
         const self = this;
         marker.on('click', async function() {
-            // First, switch to satellite view if currently on vector map BEFORE flying
+            // Switch to satellite view and zoom simultaneously if on vector map
             if (self.currentLayer === self.baseLayers.vector) {
                 self.previousLayer = self.baseLayers.vector;
                 self.switchView('satellite');
-                await new Promise(r => setTimeout(r, 200));
             }
 
             self.map.flyTo([location.coordinates[1], location.coordinates[0]], 18, { duration: 1.5 });
