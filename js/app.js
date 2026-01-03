@@ -1,4 +1,4 @@
-// Main Application Logic - Updated for 3D Arcs
+// Main Application Logic - Multi-View Native Selector Version
 
 class App {
     constructor() {
@@ -8,119 +8,139 @@ class App {
         this.legendPanel = document.getElementById('legend-panel');
         this.isLegendVisible = true;
 
-        window.appInstance = this; // Store instance for global access
+        window.appInstance = this;
         this.init();
     }
 
     async init() {
         this.showLoading();
-
-        // Load data from localStorage
+        
+        // Load data from DB first
         await window.loadLocationData();
+        
+        // Ensure counts are updated after data is definitely loaded
+        const updateHeaderCounts = () => {
+            const officeEl = document.getElementById('header-office-count');
+            const clientEl = document.getElementById('header-client-count');
+            
+            if (officeEl) officeEl.textContent = window.locationData.companies.length;
+            if (clientEl) clientEl.textContent = window.locationData.clients.length;
+        };
+
+        // Try updating immediately and also after a short delay to be safe
+        updateHeaderCounts();
+        setTimeout(updateHeaderCounts, 500);
 
         await this.waitForResources();
 
-        // Initialize map
         this.mapManager = new MapManager();
         this.mapManager.initialize();
 
-        // Initialize 3D arc animation controller
         this.animationController = new AnimationController(this.mapManager);
 
         this.hideLoading();
         this.setupEventListeners();
-        
-        console.log('App initialized. 3D Arcs will appear after 15s of idle time.');
+        this.setupViewSelector();
+
+        // Silent auto-resume fullscreen on first user interaction
+        if (sessionStorage.getItem('shouldBeFullscreen') === 'true') {
+            const silentResume = () => {
+                if (sessionStorage.getItem('shouldBeFullscreen') === 'true') {
+                    window.toggleFullscreen();
+                    sessionStorage.removeItem('shouldBeFullscreen');
+                }
+                document.removeEventListener('click', silentResume);
+                document.removeEventListener('keydown', silentResume);
+            };
+            document.addEventListener('click', silentResume);
+            document.addEventListener('keydown', silentResume);
+        }
+    }
+
+    setupViewSelector() {
+        const select = document.getElementById('map-view-select');
+        if (select) {
+            select.addEventListener('change', (e) => {
+                const view = e.target.value;
+                if (view === 'globe') {
+                    this.mapManager.toggleGlobe();
+                } else {
+                    this.mapManager.switchView(view);
+                }
+            });
+        }
     }
 
     setupEventListeners() {
-        // Toggle legend button
         const legendButton = document.getElementById('toggle-legend');
-        if (legendButton) {
-            legendButton.addEventListener('click', () => {
-                this.toggleLegend();
-            });
-        }
+        if (legendButton) legendButton.addEventListener('click', () => this.toggleLegend());
 
-        // Manual trigger button
-        const triggerButton = document.getElementById('trigger-animation');
-        if (triggerButton) {
-            triggerButton.addEventListener('click', () => {
-                this.animationController.triggerAnimation();
-            });
-        }
-
-        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            if (e.key.toLowerCase() === 't') {
-                this.animationController.triggerAnimation();
-            }
-            if (e.key.toLowerCase() === 'l') {
-                this.toggleLegend();
-            }
+            if (e.key.toLowerCase() === 't') this.animationController.triggerAnimation();
+            if (e.key.toLowerCase() === 'l') this.toggleLegend();
         });
     }
 
     toggleLegend() {
         this.isLegendVisible = !this.isLegendVisible;
-        if (this.isLegendVisible) {
-            this.legendPanel.classList.remove('hidden');
-        } else {
-            this.legendPanel.classList.add('hidden');
-        }
+        this.legendPanel.classList.toggle('hidden', !this.isLegendVisible);
     }
 
-    showLoading() {
-        if (this.loadingScreen) this.loadingScreen.classList.remove('hidden');
-    }
-
-    hideLoading() {
-        setTimeout(() => {
-            if (this.loadingScreen) this.loadingScreen.classList.add('hidden');
-        }, 500);
-    }
+    showLoading() { if (this.loadingScreen) this.loadingScreen.classList.remove('hidden'); }
+    hideLoading() { setTimeout(() => { if (this.loadingScreen) this.loadingScreen.classList.add('hidden'); }, 500); }
 
     async waitForResources() {
-        if (document.readyState === 'loading') {
-            await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
-        }
+        if (document.readyState === 'loading') await new Promise(r => document.addEventListener('DOMContentLoaded', r));
         if (document.fonts) await document.fonts.ready;
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(r => setTimeout(r, 800));
     }
 }
 
-// Global helper for closing panel
+// GLOBAL HELPERS
 window.closeInfoPanel = () => {
-    document.getElementById('info-panel').classList.add('hidden');
-};
-
-// Map Control Helpers
-window.goHome = () => {
-    if (window.appInstance && window.appInstance.mapManager) {
-        window.appInstance.mapManager.goHome();
+    const panel = document.getElementById('info-panel');
+    if (!panel.classList.contains('hidden')) {
+        panel.classList.add('hidden');
+        // Always zoom out when panel is explicitly closed
+        window.appInstance?.mapManager.goHome();
     }
 };
 
+window.goHome = () => {
+    // Close panel first if open
+    const panel = document.getElementById('info-panel');
+    if (!panel.classList.contains('hidden')) {
+        panel.classList.add('hidden');
+    }
+    // Then zoom out
+    window.appInstance?.mapManager.goHome();
+};
+
 window.reloadPage = () => {
+    if (document.fullscreenElement) {
+        sessionStorage.setItem('shouldBeFullscreen', 'true');
+    }
     window.location.reload();
 };
 
 window.toggleFullscreen = () => {
-    const mapElement = document.getElementById('map');
+    const el = document.getElementById('app');
+    const icon = document.getElementById('fullscreen-icon');
     if (!document.fullscreenElement) {
-        mapElement.requestFullscreen().catch(err => {
-            alert(`Error attempting to enable full-screen mode: ${err.message}`);
-        });
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        if (icon) icon.className = 'ti ti-minimize';
     } else {
-        document.exitFullscreen();
+        if (document.exitFullscreen) document.exitFullscreen();
+        if (icon) icon.className = 'ti ti-maximize';
     }
 };
 
-window.toggleMarkers = (type, isVisible) => {
-    if (window.appInstance && window.appInstance.mapManager) {
-        window.appInstance.mapManager.toggleMarkers(type, isVisible);
-    }
-};
+document.addEventListener('fullscreenchange', () => {
+    const icon = document.getElementById('fullscreen-icon');
+    if (icon) icon.className = document.fullscreenElement ? 'ti ti-minimize' : 'ti ti-maximize';
+});
 
-// Start app
+window.toggleMarkers = (type, isVisible) => window.appInstance?.mapManager.toggleMarkers(type, isVisible);
+
 new App();

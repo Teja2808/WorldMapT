@@ -15,7 +15,7 @@
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont/tabler-icons.min.css">
     
-    <!-- Custom Styles -->
+    <!-- Styles -->
     <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
@@ -27,7 +27,38 @@
     </div>
 
     <div id="app" class="app-container">
+        <header class="main-header">
+            <div class="header-left">
+                <h1>Temenos Worldwide</h1>
+            </div>
+            <div class="header-center">
+                <div class="stat-badge office-count">
+                    <i class="ti ti-building"></i>
+                    <span id="header-office-count">0</span> Offices
+                </div>
+                <div class="stat-badge client-count">
+                    <i class="ti ti-users"></i>
+                    <span id="header-client-count">0</span> Clients
+                </div>
+            </div>
+            <div class="header-right">
+                <!-- Admin button removed from header -->
+            </div>
+        </header>
+
         <div id="map" class="map-container"></div>
+
+        <!-- View Mode Selector (Top Left) -->
+        <div class="view-selector-container">
+            <div class="view-selector-icon"><i class="ti ti-layers-intersect"></i></div>
+            <select id="map-view-select" class="map-view-select">
+                <option value="vector" selected>SVG Vector Map (Primary)</option>
+                <option value="satellite">Satellite View</option>
+                <option value="light">Clean Light</option>
+                <option value="streets">Modern Streets (EN)</option>
+                <option value="rotate">360° Rotating Globe</option>
+            </select>
+        </div>
 
         <!-- Floating Top Controls -->
         <div class="floating-top-controls">
@@ -35,7 +66,7 @@
                 <i class="ti ti-info-circle"></i>
                 <span>Legend</span>
             </button>
-            <a href="login.html" class="btn-floating" title="Admin Portal">
+            <a href="login.html" class="btn-floating admin-link" title="Admin Portal">
                 <i class="ti ti-shield-lock"></i>
                 <span>Admin</span>
             </a>
@@ -50,7 +81,7 @@
                 <i class="ti ti-refresh"></i>
             </button>
             <button class="btn-map-control" onclick="toggleFullscreen()" title="Toggle Fullscreen">
-                <i class="ti ti-maximize"></i>
+                <i class="ti ti-maximize" id="fullscreen-icon"></i>
             </button>
         </div>
 
@@ -66,7 +97,9 @@
             <div class="legend-items">
                 <div class="filter-group">
                     <div class="filter-info">
-                        <div class="legend-marker company-marker-legend small"><i class="ti ti-building"></i></div>
+                        <div class="legend-marker company-marker-legend small">
+                            <i class="ti ti-building"></i>
+                        </div>
                         <span>Offices</span>
                     </div>
                     <label class="switch">
@@ -77,7 +110,9 @@
                 
                 <div class="filter-group">
                     <div class="filter-info">
-                        <div class="legend-marker client-marker-legend small"><i class="ti ti-users"></i></div>
+                        <div class="legend-marker client-marker-legend small">
+                            <i class="ti ti-users"></i>
+                        </div>
                         <span>Clients</span>
                     </div>
                     <label class="switch">

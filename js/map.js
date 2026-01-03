@@ -1,4 +1,4 @@
-// Map Initialization and Configuration using Leaflet.js - MongoDB Version (Port 3000)
+// Map Initialization and Configuration using Leaflet.js - MongoDB Version (Hybrid Wrapping Version)
 
 class MapManager {
     constructor() {
@@ -7,78 +7,185 @@ class MapManager {
             companies: [],
             clients: []
         };
+        this.baseLayers = {};
+        this.currentLayer = null;
+        this.rotationInterval = null;
+        this.isRotating = false;
+        this.worldBounds = L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180));
     }
 
     initialize() {
-        // Initialize Leaflet map with world boundaries
+        // Initialize Leaflet map
         this.map = L.map('map', {
             minZoom: 1,
             maxZoom: 18,
             zoomControl: false,
             worldCopyJump: true,
-            center: [35, 0], // Centered on major landmasses
-            zoom: 3 // Higher zoom to fill the screen better
+            center: [35, 0],
+            zoom: 3
         });
 
-        // Add SVG World Map Layer
-        this.addSVGWorldMap();
+        const wrapOptions = {
+            noWrap: false,
+            continuousWorld: true
+        };
 
-        // Add zoom control to bottom right
-        L.control.zoom({
-            position: 'bottomright'
-        }).addTo(this.map);
+        const singleWorldOptions = {
+            noWrap: true,
+            bounds: this.worldBounds
+        };
 
-        // Add markers
+        // Define Base Layers
+        this.baseLayers = {
+            dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                ...wrapOptions,
+                attribution: '© CartoDB'
+            }),
+            satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                ...wrapOptions,
+                attribution: '© Esri'
+            }),
+            green: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}', {
+                ...wrapOptions,
+                attribution: '© Esri'
+            }),
+            light: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                ...wrapOptions,
+                attribution: '© CartoDB'
+            }),
+            streets: L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                ...wrapOptions,
+                attribution: '© CartoDB'
+            }),
+            vector: L.layerGroup()
+        };
+
+        // Setup Vector Layer (Primary & Single)
+        this.svgVectorLayer = L.geoJSON(null, {
+            style: {
+                color: '#4FA3C7', 
+                weight: 1.5,
+                opacity: 1,
+                fillColor: '#0F1726', 
+                fillOpacity: 1
+            }
+        });
+        this.baseLayers.vector.addLayer(this.svgVectorLayer);
+        this.labelLayer = L.layerGroup();
+        this.baseLayers.vector.addLayer(this.labelLayer);
+        this.loadSVGData();
+
+        // Default to Vector (Primary)
+        this.switchView('vector');
+
+        L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+
         this.addMarkers();
 
-        // Ensure map resizes with window
-        window.addEventListener('resize', () => {
-            this.map.invalidateSize();
-        });
-        
-        // Ensure map fills available space
-        setTimeout(() => {
-            this.map.invalidateSize();
-        }, 100);
+        window.addEventListener('resize', () => this.map.invalidateSize());
+        setTimeout(() => this.map.invalidateSize(), 100);
     }
 
-    addSVGWorldMap() {
-        // Add GeoJSON world map with custom styling
-        fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson')
-            .then(response => response.json())
+    loadSVGData() {
+        const cleanLightCountries = [
+            "United States", "Canada", "Mexico", "Brazil", "Argentina", "United Kingdom",
+            "France", "Germany", "Spain", "Italy", "Norway", "Sweden", "Russia",
+            "China", "India", "Japan", "South Korea", "Australia", "New Zealand",
+            "South Africa", "Egypt", "Saudi Arabia", "Turkey", "Kazakhstan",
+            "Algeria", "Greenland", "Indonesia", "Thailand", "Iran", "Pakistan", "Libya", "Sudan", "Mali", "Nigeria", "Ethiopia"
+        ];
+
+        fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
+            .then(res => res.json())
             .then(data => {
-                L.geoJSON(data, {
-                    style: {
-                        color: '#00D9FF',
-                        weight: 1,
-                        opacity: 0.4,
-                        fillColor: '#1E2433',
-                        fillOpacity: 0.6
-                    },
-                    interactive: false
-                }).addTo(this.map);
-            })
-            .catch(error => {
-                console.log('Using fallback map rendering');
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
-                    attribution: '© OpenStreetMap, © CartoDB',
-                    subdomains: 'abcd',
-                    maxZoom: 19,
-                    noWrap: true
-                }).addTo(this.map);
+                this.svgVectorLayer.clearLayers();
+                this.labelLayer.clearLayers();
+                this.svgVectorLayer.addData(data);
+                this.svgVectorLayer.setStyle({
+                    color: '#4FA3C7',
+                    weight: 1.5,
+                    opacity: 1,
+                    fillColor: '#0F1726',
+                    fillOpacity: 1
+                });
+
+                data.features.forEach(feature => {
+                    const name = feature.properties.name;
+                    if (cleanLightCountries.includes(name)) {
+                        try {
+                            const bounds = L.geoJSON(feature).getBounds();
+                            const center = bounds.getCenter();
+                            
+                            const labelIcon = L.divIcon({
+                                className: 'country-label',
+                                html: `<span>${name}</span>`,
+                                iconSize: [120, 20],
+                                iconAnchor: [60, 10]
+                            });
+
+                            L.marker(center, { 
+                                icon: labelIcon, 
+                                interactive: false 
+                            }).addTo(this.labelLayer);
+                        } catch (e) {}
+                    }
+                });
             });
     }
 
-    addMarkers() {
-        // Add company markers from locationData
-        window.locationData.companies.forEach((location) => {
-            this.addCompanyMarker(location);
-        });
+    switchView(viewKey) {
+        this.stopRotation();
+        
+        if (viewKey === 'rotate') {
+            this.startRotation();
+            return;
+        }
 
-        // Add client markers from locationData
-        window.locationData.clients.forEach((location) => {
-            this.addClientMarker(location);
-        });
+        if (this.currentLayer) this.map.removeLayer(this.currentLayer);
+        this.currentLayer = this.baseLayers[viewKey];
+        this.currentLayer.addTo(this.map);
+        
+        if (viewKey === 'vector') {
+            this.map.setMaxBounds(this.worldBounds);
+        } else {
+            this.map.setMaxBounds(null);
+        }
+
+        document.body.className = `map-theme-${viewKey}`;
+        const app = document.getElementById('app');
+        if (app) app.className = `app-container map-theme-${viewKey}`;
+        
+        if (window.appInstance?.animationController) {
+            window.appInstance.animationController.updateTheme(viewKey);
+        }
+    }
+
+    startRotation() {
+        if (this.isRotating) return;
+        this.isRotating = true;
+        this.map.setView([20, 0], 2);
+        
+        let lng = 0;
+        this.rotationInterval = setInterval(() => {
+            lng = (lng + 0.2) % 360;
+            const currentCenter = this.map.getCenter();
+            this.map.panTo([currentCenter.lat, lng], { animate: false });
+        }, 30);
+
+        this.map.once('mousedown dragstart zoomstart', () => this.stopRotation());
+    }
+
+    stopRotation() {
+        this.isRotating = false;
+        if (this.rotationInterval) {
+            clearInterval(this.rotationInterval);
+            this.rotationInterval = null;
+        }
+    }
+
+    addMarkers() {
+        window.locationData.companies.forEach(loc => this.addCompanyMarker(loc));
+        window.locationData.clients.forEach(loc => this.addClientMarker(loc));
     }
 
     async addCompanyMarker(location) {
@@ -88,15 +195,15 @@ class MapManager {
             iconSize: [40, 40],
             iconAnchor: [20, 20]
         });
-
-        const latlng = L.latLng(location.coordinates[1], location.coordinates[0]);
-        const marker = L.marker(latlng, { icon: icon }).addTo(this.map);
-
-        marker.on('click', async (e) => {
-            const content = await this.createPopupContent(location, 'company');
-            this.showInSidePanel(content, e.originalEvent);
+        const marker = L.marker(L.latLng(location.coordinates[1], location.coordinates[0]), { icon }).addTo(this.map);
+        marker.on('click', async () => {
+            this.map.flyTo([location.coordinates[1], location.coordinates[0]], 18, { duration: 1.5 });
+            this.map.once('moveend', async () => {
+                const content = await this.createPopupContent(location, 'company');
+                const pos = this.map.latLngToContainerPoint(marker.getLatLng());
+                this.showInSidePanel(content, { clientX: pos.x, clientY: pos.y });
+            });
         });
-
         this.markers.companies.push({ marker, location });
     }
 
@@ -107,15 +214,15 @@ class MapManager {
             iconSize: [40, 40],
             iconAnchor: [20, 20]
         });
-
-        const latlng = L.latLng(location.coordinates[1], location.coordinates[0]);
-        const marker = L.marker(latlng, { icon: icon }).addTo(this.map);
-
-        marker.on('click', async (e) => {
-            const content = await this.createPopupContent(location, 'client');
-            this.showInSidePanel(content, e.originalEvent);
+        const marker = L.marker(L.latLng(location.coordinates[1], location.coordinates[0]), { icon }).addTo(this.map);
+        marker.on('click', async () => {
+            this.map.flyTo([location.coordinates[1], location.coordinates[0]], 18, { duration: 1.5 });
+            this.map.once('moveend', async () => {
+                const content = await this.createPopupContent(location, 'client');
+                const pos = this.map.latLngToContainerPoint(marker.getLatLng());
+                this.showInSidePanel(content, { clientX: pos.x, clientY: pos.y });
+            });
         });
-
         this.markers.clients.push({ marker, location });
     }
 
@@ -123,30 +230,16 @@ class MapManager {
         const panel = document.getElementById('info-panel');
         const contentArea = document.getElementById('info-panel-content');
         contentArea.innerHTML = content;
-        
-        // Reset scroll position to top
         panel.scrollTop = 0;
-        
-        // Position panel next to click
         const x = event.clientX;
         const y = event.clientY;
-        
-        // Position panel to the LEFT of the location by default
-        let left = x - 410; 
+        let left = x - 530; 
         let top = y - 100;
-        
-        // If marker is on the left side of the screen, flip panel to the RIGHT
-        if (x < 450) {
-            left = x + 30;
-        }
-
-        // Vertical screen boundary safety
+        if (x < 550) left = x + 30;
         if (top + 500 > window.innerHeight) top = window.innerHeight - 520;
         if (top < 20) top = 20;
-
         panel.style.left = `${left}px`;
         panel.style.top = `${top}px`;
-        
         panel.classList.remove('hidden');
     }
 
@@ -154,41 +247,35 @@ class MapManager {
         const isCompany = type === 'company';
         const icon = isCompany ? 'ti-building' : 'ti-users';
         const iconClass = isCompany ? 'company' : 'client';
-
         let details = '';
         let relatedData = '';
         
         try {
-            const API_URL = `http://localhost:3000/api/${isCompany ? 'offices' : 'clients'}/${location.id}`;
-            const response = await fetch(API_URL);
+            const response = await fetch(`http://localhost:3000/api/${isCompany ? 'offices' : 'clients'}/${location.id}`);
             const data = await response.json();
             
             if (isCompany) {
                 details = `
+                    <div class="popup-info"><i class="ti ti-map-pin"></i><span>${location.city}, ${location.country}</span></div>
                     ${location.employees ? `<div class="popup-info"><i class="ti ti-users"></i><span>${location.employees} employees</span></div>` : ''}
                     ${location.established ? `<div class="popup-info"><i class="ti ti-calendar"></i><span>Est. ${location.established}</span></div>` : ''}
                 `;
                 
-                if (data.visits && data.visits.length > 0) {
+                if (data.visits?.length) {
                     relatedData = `
-                        <div class="popup-visits">
-                            <h4><i class="ti ti-calendar-event"></i> Recent Client Visits</h4>
-                            ${data.visits.slice(0, 3).map(v => `
-                                <div class="visit-group">
-                                    <div class="visit-item">
+                        <div class="popup-section-title"><i class="ti ti-calendar-event"></i> Recent Visits</div>
+                        <div class="popup-visits-list">
+                            ${data.visits.map(v => `
+                                <div class="visit-card">
+                                    <div class="visit-header">
                                         <strong>${v.client?.name || 'Unknown'}</strong>
-                                        <span>${new Date(v.visitDate).toLocaleDateString()}</span>
+                                        <span class="visit-date">${new Date(v.visitDate).toLocaleDateString()}</span>
                                     </div>
-                                    ${v.images && v.images.length > 0 ? `
+                                    ${v.images?.length ? `
                                         <div class="popup-slider-container">
                                             <div class="popup-slider">
-                                                ${v.images.map((img, idx) => `
-                                                    <div class="popup-slider-item">
-                                                        <img src="${img}" alt="Visit photo" onclick="openLightbox(${JSON.stringify(v.images).replace(/"/g, '&quot;')}, ${idx}); event.stopPropagation();">
-                                                    </div>
-                                                `).join('')}
+                                                ${v.images.map((img, idx) => `<div class="popup-slider-item mini"><img src="${img}" onclick="openLightbox(${JSON.stringify(v.images).replace(/"/g, '&quot;')}, ${idx}); event.stopPropagation();"></div>`).join('')}
                                             </div>
-                                            ${v.images.length > 1 ? '<div class="slider-hint"><i class="ti ti-arrows-left-right"></i> Scroll for more</div>' : ''}
                                         </div>
                                     ` : ''}
                                 </div>
@@ -198,30 +285,26 @@ class MapManager {
                 }
             } else {
                 details = `
+                    <div class="popup-info"><i class="ti ti-map-pin"></i><span>${location.city}, ${location.country}</span></div>
                     ${location.industry ? `<div class="popup-info"><i class="ti ti-briefcase"></i><span>${location.industry}</span></div>` : ''}
                     ${location.partnership_since ? `<div class="popup-info"><i class="ti ti-calendar"></i><span>Partner since ${location.partnership_since}</span></div>` : ''}
                 `;
                 
-                if (data.visits && data.visits.length > 0) {
+                if (data.visits?.length) {
                     relatedData = `
-                        <div class="popup-visits">
-                            <h4><i class="ti ti-building"></i> Visited Offices</h4>
-                            ${data.visits.slice(0, 3).map(v => `
-                                <div class="visit-group">
-                                    <div class="visit-item">
+                        <div class="popup-section-title"><i class="ti ti-building"></i> Visited Offices</div>
+                        <div class="popup-visits-list">
+                            ${data.visits.map(v => `
+                                <div class="visit-card">
+                                    <div class="visit-header">
                                         <strong>${v.office?.name || 'Unknown'}</strong>
-                                        <span>${new Date(v.visitDate).toLocaleDateString()}</span>
+                                        <span class="visit-date">${new Date(v.visitDate).toLocaleDateString()}</span>
                                     </div>
-                                    ${v.images && v.images.length > 0 ? `
+                                    ${v.images?.length ? `
                                         <div class="popup-slider-container">
                                             <div class="popup-slider">
-                                                ${v.images.map((img, idx) => `
-                                                    <div class="popup-slider-item">
-                                                        <img src="${img}" alt="Visit photo" onclick="openLightbox(${JSON.stringify(v.images).replace(/"/g, '&quot;')}, ${idx}); event.stopPropagation();">
-                                                    </div>
-                                                `).join('')}
+                                                ${v.images.map((img, idx) => `<div class="popup-slider-item mini"><img src="${img}" onclick="openLightbox(${JSON.stringify(v.images).replace(/"/g, '&quot;')}, ${idx}); event.stopPropagation();"></div>`).join('')}
                                             </div>
-                                            ${v.images.length > 1 ? '<div class="slider-hint"><i class="ti ti-arrows-left-right"></i> Scroll for more</div>' : ''}
                                         </div>
                                     ` : ''}
                                 </div>
@@ -230,20 +313,13 @@ class MapManager {
                     `;
                 }
             }
-        } catch (error) {
-            console.error('Error fetching API data:', error);
-        }
+        } catch (e) {}
 
-        const imagesHTML = location.images && location.images.length > 0 ? `
-            <div class="popup-slider-container">
+        const imagesHTML = location.images?.length ? `
+            <div class="popup-slider-container main">
                 <div class="popup-slider">
-                    ${location.images.map((img, index) => `
-                        <div class="popup-slider-item">
-                            <img src="${img}" alt="${location.name}" onclick="openLightbox(${JSON.stringify(location.images).replace(/"/g, '&quot;')}, ${index})">
-                        </div>
-                    `).join('')}
+                    ${location.images.map((img, idx) => `<div class="popup-slider-item"><img src="${img}" onclick="openLightbox(${JSON.stringify(location.images).replace(/"/g, '&quot;')}, ${idx})"></div>`).join('')}
                 </div>
-                ${location.images.length > 1 ? '<div class="slider-hint"><i class="ti ti-arrows-left-right"></i> Scroll for more</div>' : ''}
             </div>
         ` : '';
 
@@ -252,47 +328,24 @@ class MapManager {
                 <div class="popup-icon ${iconClass}"><i class="ti ${icon}"></i></div>
                 <div class="popup-title-section">
                     <div class="popup-title">${location.name}</div>
-                    <div class="popup-type">${isCompany ? 'Company Office' : 'Client Location'}</div>
+                    <div class="popup-type">${isCompany ? 'OFFICE' : 'CLIENT'}</div>
                 </div>
             </div>
             <div class="popup-body">
-                <div class="popup-info"><i class="ti ti-map-pin"></i><span>${location.city}, ${location.country}</span></div>
                 ${details}
-                ${location.description ? `<div class="popup-description">${location.description}</div>` : ''}
+                <div class="popup-divider"></div>
+                <div class="popup-description-title">${location.name}</div>
                 ${imagesHTML}
                 ${relatedData}
             </div>
         `;
     }
 
-    fitBounds(coordinates) {
-        const latLngs = coordinates.map(coord => [coord[1], coord[0]]);
-        const bounds = L.latLngBounds(latLngs);
-        this.map.fitBounds(bounds, {
-            padding: [100, 100],
-            maxZoom: 5,
-            animate: true,
-            duration: 2
-        });
-    }
-
-    goHome() {
-        this.map.setView([35, 0], 3, { animate: true });
-    }
-
-    resetMap() {
-        this.map.setView([35, 0], 3, { animate: true });
-    }
-
+    goHome() { this.stopRotation(); this.map.flyTo([35, 0], 3, { duration: 1.5 }); }
+    resetMap() { this.stopRotation(); this.map.flyTo([35, 0], 3, { duration: 1.5 }); }
     toggleMarkers(type, isVisible) {
         const markerList = type === 'offices' ? this.markers.companies : this.markers.clients;
-        markerList.forEach(item => {
-            if (isVisible) {
-                item.marker.addTo(this.map);
-            } else {
-                this.map.removeLayer(item.marker);
-            }
-        });
+        markerList.forEach(item => isVisible ? item.marker.addTo(this.map) : this.map.removeLayer(item.marker));
     }
 }
 
