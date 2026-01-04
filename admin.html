@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - World Map Tracker</title>
+    <link rel="icon" href="images/tsquare.png" type="image/png">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont/tabler-icons.min.css">
     <link rel="stylesheet" href="styles/admin.css">
 </head>
@@ -11,12 +12,12 @@
     <!-- Header -->
     <header class="admin-header">
         <div class="header-left">
-            <h1><i class="ti ti-shield-lock"></i> Admin Panel</h1>
+            <img src="images/temenos figma.png" alt="Temenos Logo" class="header-logo">
+            <div class="header-divider"></div>
             <span class="admin-user"><i class="ti ti-user"></i> <span id="admin-username"></span></span>
         </div>
         <div class="header-actions">
             <a href="index.html" class="btn-link"><i class="ti ti-map"></i> View Map</a>
-            <button onclick="logout()" class="btn-logout"><i class="ti ti-logout"></i> Logout</button>
         </div>
     </header>
 
@@ -42,6 +43,12 @@
                     <span>Visits</span>
                 </button>
             </nav>
+            <div class="sidebar-footer">
+                <button onclick="logout()" class="btn-sidebar-logout">
+                    <i class="ti ti-logout"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
         </aside>
 
         <!-- Main Content Area -->

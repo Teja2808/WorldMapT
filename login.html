@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - World Map Tracker</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont/tabler-icons.min.css">
+    <link href="https://developer.temenos.com/uux/base.css" rel="stylesheet" />
+    <script src="https://developer.temenos.com/uux/unified-ux-web.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -13,95 +14,117 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #0A0E1A 0%, #141824 50%, #0F1420 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: url('images/temenosLoginBackground.jpg') center/cover no-repeat fixed;
+            background-color: #f5f5f5;
             min-height: 100vh;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-end;
             padding: 2rem;
+            position: relative;
+            filter: brightness(0.95);
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.1) 100%);
+            z-index: 1;
         }
 
         .login-container {
             width: 100%;
-            max-width: 450px;
-            background: rgba(20, 24, 36, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 1.5rem;
-            border: 1px solid rgba(0, 217, 255, 0.2);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-width: 500px;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
             overflow: hidden;
+            position: relative;
+            z-index: 2;
+            margin-right: 4rem;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
         }
 
         .login-header {
-            background: linear-gradient(135deg, #00D9FF, #7B61FF);
-            padding: 3rem 2rem;
+            background: white;
+            padding: 3rem 2rem 2rem;
             text-align: center;
-            color: white;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        .logo-container {
+            margin-bottom: 1rem;
+        }
+
+        .logo-container img {
+            height: 60px;
+            width: auto;
+            object-fit: contain;
         }
 
         .login-header h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+            margin-top: -0.75rem;
+            font-weight: 600;
+            color: #293276;
+            letter-spacing: -0.5px;
+        }
+
+        .login-header h2 {
+            font-size: 1.125rem;
+            margin-bottom: 1rem;
+            font-weight: 400;
+            color: #293276;
         }
 
         .login-header p {
-            opacity: 0.9;
-            font-size: 0.875rem;
+            font-size: 1.05rem;
+            color: #6B7280;
+            line-height: 1.5;
         }
 
         .login-body {
             padding: 2.5rem 2rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .form-group {
             margin-bottom: 1.5rem;
         }
 
-        .form-group label {
-            display: block;
-            color: #B4BCD0;
-            font-size: 0.875rem;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-        }
-
-        .input-wrapper {
-            position: relative;
-        }
-
-        .input-wrapper i {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #00D9FF;
-            font-size: 1.25rem;
-        }
-
-        .form-control {
+        uwc-text-field {
             width: 100%;
-            padding: 0.875rem 1rem 0.875rem 3rem;
-            background: #1E2433;
-            border: 1px solid #2A3142;
-            border-radius: 0.75rem;
-            color: white;
-            font-size: 1rem;
-            transition: all 0.3s;
+            --uwc-border-color: #D1D5DB;
+            --uwc-focus-color: #374151;
+            --uwc-text-color: #1F2937;
         }
 
-        .form-control:focus {
-            outline: none;
-            border-color: #00D9FF;
-            box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.1);
+        uwc-text-field::part(input) {
+            background: #F9FAFB !important;
+            color: #1F2937 !important;
+            border-radius: 0.5rem;
+            border: 1px solid #D1D5DB !important;
+        }
+
+        uwc-text-field::part(label) {
+            color: #293276 !important;
+            font-weight: 500 !important;
+            font-size: 1rem !important;
         }
 
         .error-message {
-            color: #FF5252;
+            color: #DC2626;
             font-size: 0.875rem;
             margin-top: 0.5rem;
             display: none;
@@ -111,119 +134,114 @@
             display: block;
         }
 
-        .btn-login {
+        uwc-button {
             width: 100%;
-            padding: 1rem;
-            background: linear-gradient(135deg, #00D9FF, #7B61FF);
-            color: white;
-            border: none;
-            border-radius: 0.75rem;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 1rem;
+            margin-top: 1.5rem;
         }
 
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 217, 255, 0.4);
+        uwc-button::part(button) {
+            width: 100% !important;
+            padding: 0.875rem !important;
+            background: #293276 !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 0.5rem !important;
+            font-size: 1.1rem !important;
+            font-weight: 600 !important;
+            letter-spacing: 0.5px !important;
         }
 
-        .btn-login:active {
-            transform: translateY(0);
+        uwc-button::part(button):hover {
+            background: #1a1f4d !important;
+        }
+
+        uwc-button::part(button):active {
+            background: #293276 !important;
         }
 
         .login-footer {
             text-align: center;
             padding: 1.5rem 2rem;
-            border-top: 1px solid #2A3142;
+            border-top: 1px solid #E5E7EB;
         }
 
         .login-footer a {
-            color: #00D9FF;
+            color: #6B7280;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            font-size: 0.875rem;
-            transition: all 0.3s;
+            font-size: 1rem;
+            transition: all 0.2s;
         }
 
         .login-footer a:hover {
-            color: #5CE1FF;
+            color: #293276;
         }
 
         .demo-credentials {
-            background: rgba(0, 217, 255, 0.1);
-            border: 1px solid rgba(0, 217, 255, 0.2);
-            border-radius: 0.75rem;
+            background: #F3F4F6;
+            border: 1px solid #E5E7EB;
+            border-radius: 0.5rem;
             padding: 1rem;
             margin-top: 1.5rem;
             font-size: 0.875rem;
-            color: #B4BCD0;
+            color: #6B7280;
         }
 
         .demo-credentials strong {
-            color: #00D9FF;
+            color: #293276;
         }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="login-header">
-            <h1>
-                <i class="ti ti-shield-lock"></i>
-                Admin Login
-            </h1>
-            <p>World Map Tracker Administration</p>
+            <div class="logo-container">
+                <img src="images/teemenos WW.png" alt="Temenos Logo">
+            </div>
+            <h1>Touch Screen Map</h1>
+            <p>Administrator Portal</p>
+            
+            <p>Login to add markers and manage the map</p>
         </div>
 
         <div class="login-body">
             <form id="login-form">
                 <div class="form-group">
-                    <label>Username</label>
-                    <div class="input-wrapper">
-                        <i class="ti ti-user"></i>
-                        <input 
-                            type="text" 
-                            class="form-control" 
-                            id="username" 
-                            placeholder="Enter username"
-                            autocomplete="username"
-                            required
-                        >
-                    </div>
+                    <uwc-text-field
+                        id="username"
+                        label="Login ID"
+                        placeholder="Enter login ID"
+                        type="text"
+                        autocomplete="username"
+                        required
+                    ></uwc-text-field>
                 </div>
 
                 <div class="form-group">
-                    <label>Password</label>
-                    <div class="input-wrapper">
-                        <i class="ti ti-lock"></i>
-                        <input 
-                            type="password" 
-                            class="form-control" 
-                            id="password" 
-                            placeholder="Enter password"
-                            autocomplete="current-password"
-                            required
-                        >
-                    </div>
+                    <uwc-text-field
+                        id="password"
+                        label="Password"
+                        placeholder="Enter password"
+                        type="password"
+                        autocomplete="current-password"
+                        required
+                    ></uwc-text-field>
                     <div class="error-message" id="error-message">
-                        Invalid username or password
+                        Invalid login ID or password
                     </div>
                 </div>
 
-                <button type="submit" class="btn-login">
-                    Sign In
-                </button>
+                <uwc-button
+                    id="submit-btn"
+                    cta
+                    label="Login →"
+                    onClick="document.getElementById('login-form').dispatchEvent(new Event('submit'))"
+                ></uwc-button>
             </form>
 
-            <div class="demo-credentials">
-                <strong>Demo Credentials:</strong><br>
-                Username: <code>admin</code><br>
-                Password: <code>admin</code>
-            </div>
+            
         </div>
 
         <div class="login-footer">
@@ -235,38 +253,44 @@
     </div>
 
     <script>
-        document.getElementById('login-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const errorMessage = document.getElementById('error-message');
-            
-            // Simple authentication
-            if (username === 'admin' && password === 'admin') {
-                // Set session
-                sessionStorage.setItem('adminLoggedIn', 'true');
-                sessionStorage.setItem('adminUsername', username);
-                
-                // Redirect to admin panel
+        // Wait for web components to be ready
+        window.addEventListener('load', function() {
+            document.getElementById('login-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                // Get values from UWC text fields
+                const usernameField = document.getElementById('username');
+                const passwordField = document.getElementById('password');
+                const username = usernameField.value || usernameField.getAttribute('value');
+                const password = passwordField.value || passwordField.getAttribute('value');
+                const errorMessage = document.getElementById('error-message');
+
+                // Simple authentication
+                if (username === 'admin' && password === 'admin') {
+                    // Set session
+                    sessionStorage.setItem('adminLoggedIn', 'true');
+                    sessionStorage.setItem('adminUsername', username);
+
+                    // Redirect to admin panel
+                    window.location.href = 'admin.html';
+                } else {
+                    // Show error
+                    errorMessage.classList.add('show');
+
+                    // Shake animation
+                    const form = document.querySelector('.login-container');
+                    form.style.animation = 'shake 0.5s';
+                    setTimeout(() => {
+                        form.style.animation = '';
+                    }, 500);
+                }
+            });
+
+            // Check if already logged in
+            if (sessionStorage.getItem('adminLoggedIn') === 'true') {
                 window.location.href = 'admin.html';
-            } else {
-                // Show error
-                errorMessage.classList.add('show');
-                
-                // Shake animation
-                const form = document.querySelector('.login-container');
-                form.style.animation = 'shake 0.5s';
-                setTimeout(() => {
-                    form.style.animation = '';
-                }, 500);
             }
         });
-
-        // Check if already logged in
-        if (sessionStorage.getItem('adminLoggedIn') === 'true') {
-            window.location.href = 'admin.html';
-        }
 
         // Add shake animation
         const style = document.createElement('style');
