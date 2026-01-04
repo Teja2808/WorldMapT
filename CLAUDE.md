@@ -132,7 +132,9 @@ See [.env](.env) for the current configuration.
 ## Key Architectural Patterns
 
 ### Coordinate System
-All location data uses `[longitude, latitude]` format in MongoDB (GeoJSON standard). The frontend Leaflet map uses `[latitude, longitude]` so conversion occurs at the data boundary (e.g., in [js/data.js](js/data.js) when fetching data).
+All location data uses `[longitude, latitude]` format in MongoDB (GeoJSON standard). The frontend Leaflet map uses `[latitude, longitude]` so conversion occurs at the data boundary (e.g., in [js/data.js](js/data.js) when fetching data). This is critical when:
+- Fetching offices/clients: Convert from `[lon, lat]` to `[lat, lon]`
+- Sending new coordinates in API: Convert from `[lat, lon]` to `[lon, lat]`
 
 ### Hybrid Data Storage
 The application supports two modes:
@@ -140,19 +142,25 @@ The application supports two modes:
 - **Without MongoDB**: Falls back to browser localStorage via [js/storage.js](js/storage.js) - useful for demos or offline operation
 
 ### Frontend-Backend Communication
-The frontend primarily uses `fetch()` calls to `/api/` endpoints. [js/data.js](js/data.js) handles API communication. If API calls fail, the application gracefully degrades to localStorage.
+The frontend primarily uses `fetch()` calls to `/api/` endpoints. [js/data.js](js/data.js) handles API communication. If API calls fail, the application gracefully degrades to localStorage. Key flow:
+1. Admin panel ([js/admin.js](js/admin.js)) collects form data and sends to API
+2. API routes validate and persist to MongoDB with multer handling images
+3. Map refreshes by fetching updated data from `/api/offices` and `/api/clients`
+4. On error, localStorage is used transparently to maintain functionality
 
 ### Image Management
 - Images upload to `uploads/offices/` or `uploads/clients/` directories via multer middleware
 - Filenames follow pattern: `{resource-type}-{timestamp}-{random}.{ext}`
 - Updates preserve existing images by default; removal via `existingImages` parameter
 - File size limit: 5MB per file, max 5 files per upload
+- Images stored on disk; database stores only filenames in the `images` array
+- Frontend reconstructs full URLs as `/uploads/{resource}/{filename}`
 
 ### Timestamps and Updates
-[models/Office.js](models/Office.js) and [models/Client.js](models/Client.js) have pre-save hooks that automatically update the `updatedAt` timestamp.
+[models/Office.js](models/Office.js) and [models/Client.js](models/Client.js) have pre-save hooks that automatically update the `updatedAt` timestamp. This happens on any modification, including image additions/removals.
 
 ### Marker Rendering
-[js/map.js](js/map.js) MapManager class renders offices and clients as separate marker groups, supporting different icons and behaviors. Includes layer rotation between CartoDB Dark, Esri Satellite, and Esri Terrain tile layers.
+[js/map.js](js/map.js) MapManager class renders offices and clients as separate marker groups, supporting different icons and behaviors. Includes layer rotation between CartoDB Dark, Esri Satellite, and Esri Terrain tile layers. Uses Leaflet's L.markerClusterGroup for performance with many markers.
 
 ## Important Implementation Notes
 
@@ -172,3 +180,57 @@ Critical: MongoDB stores `[longitude, latitude]` (GeoJSON standard), but Leaflet
 - Esri Terrain
 
 Layer toggle logic should preserve current markers across switches.
+
+### Storage Fallback Behavior
+The application gracefully degrades when MongoDB is unavailable:
+- Frontend [js/data.js](js/data.js) catches API errors and falls back to [js/storage.js](js/storage.js)
+- [js/storage.js](js/storage.js) manages in-browser localStorage for demo/offline mode
+- Data is not synced between storage modes - use one or the other for consistency
+- Useful for testing UI without running the backend or for demo deployments
+
+### Route Structure
+API routes are organized by resource type in the `routes/` directory:
+- Each route file exports a router configured with multer middleware (where applicable)
+- Multer configuration: `dest: 'uploads/{resource}/'`, max 5 files, 5MB each, jpeg/png/gif/webp only
+- Image files are stored with naming pattern: `{resource}-{timestamp}-{random}.{ext}`
+- Routes handle both multipart/form-data (for images) and application/json requests
+
+## Debugging and Common Tasks
+
+### Viewing Recent Changes
+Check git log to understand recent UI/UX work:
+```bash
+git log --oneline -10
+```
+Recent commits show split view, header/button changes, satellite view fixes, and map switching improvements.
+
+### Testing Without Backend
+1. Verify `.env` has correct `MONGODB_URI` pointing to a running MongoDB instance
+2. If MongoDB is unavailable, ensure frontend gracefully falls back to localStorage
+3. Check browser console (F12) for API errors and fallback messages
+
+### Debugging Image Uploads
+- Verify `uploads/offices/` and `uploads/clients/` directories exist and are writable
+- Check multer middleware in [routes/offices.js](routes/offices.js) and [routes/clients.js](routes/clients.js)
+- Images are stored on disk and referenced by filename in the database
+- Test with small images (<1MB) first to isolate file size issues
+- Inspect network requests to verify multipart/form-data is being sent correctly
+
+### Inspecting Database State
+```bash
+# Connect to MongoDB and view data
+mongosh worldmap
+db.offices.find()
+db.clients.find()
+db.visits.find()
+```
+
+### Resetting Application State
+```bash
+# Reseed database with sample data (clears all existing data)
+npm run seed
+
+# To clear data via MongoDB:
+# mongosh worldmap
+# db.dropDatabase()
+```

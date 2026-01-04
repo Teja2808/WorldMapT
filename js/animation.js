@@ -81,10 +81,10 @@ class AnimationController {
             const officesEnabled = document.getElementById('filter-offices').checked;
             if (officesEnabled) {
                 this.currentPhase = 'offices';
-                const sortedOffices = [...window.locationData.companies].sort((a, b) => 
+                const sortedOffices = [...window.locationData.companies].sort((a, b) =>
                     a.country.localeCompare(b.country) || a.city.localeCompare(b.city)
                 );
-                await this.animateLocations(sortedOffices, '#00D9FF');
+                await this.animateLocations(sortedOffices, '#293276');
                 if (!this.isAnimating) break;
                 this.activeArcs = [];
             }
@@ -96,7 +96,7 @@ class AnimationController {
                 const sortedClients = [...window.locationData.clients].sort((a, b) =>
                     a.country.localeCompare(b.country) || a.city.localeCompare(b.city)
                 );
-                await this.animateLocations(sortedClients, '#FF6B9D');
+                await this.animateLocations(sortedClients, '#8246af');
                 if (!this.isAnimating) break;
                 this.activeArcs = [];
             }

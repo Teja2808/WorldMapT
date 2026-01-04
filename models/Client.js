@@ -8,6 +8,7 @@ const clientSchema = new mongoose.Schema({
     },
     address: {
         type: String,
+        required: true,
         trim: true
     },
     city: {
@@ -16,6 +17,16 @@ const clientSchema = new mongoose.Schema({
         trim: true
     },
     country: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    state: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    zipCode: {
         type: String,
         required: true,
         trim: true

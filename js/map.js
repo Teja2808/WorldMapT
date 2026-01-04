@@ -64,11 +64,11 @@ class MapManager {
         // Setup Vector Layer (Primary & Single)
         this.svgVectorLayer = L.geoJSON(null, {
             style: {
-                color: '#4FA3C7', 
-                weight: 1.5,
-                opacity: 1,
-                fillColor: '#0F1726', 
-                fillOpacity: 1
+                color: '#00D9FF',
+                weight: 2,
+                opacity: 0.6,
+                fillColor: '#0F1726',
+                fillOpacity: 0.6
             }
         });
         this.baseLayers.vector.addLayer(this.svgVectorLayer);
@@ -103,11 +103,11 @@ class MapManager {
                 this.labelLayer.clearLayers();
                 this.svgVectorLayer.addData(data);
                 this.svgVectorLayer.setStyle({
-                    color: '#4FA3C7',
-                    weight: 1.5,
-                    opacity: 1,
+                    color: '#00D9FF',
+                    weight: 2,
+                    opacity: 0.6,
                     fillColor: '#0F1726',
-                    fillOpacity: 1
+                    fillOpacity: 0.6
                 });
 
                 data.features.forEach(feature => {
