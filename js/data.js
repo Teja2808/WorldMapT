@@ -42,26 +42,22 @@ async function loadLocationData() {
             name: office.name,
             city: office.city,
             country: normalizeCountryName(office.country),
-            state: office.state,
             coordinates: office.coordinates,
             description: office.description,
             employees: office.employees,
             established: office.established,
-            zipCode: office.zipCode,
             images: office.images || []
         }));
-
+        
         window.locationData.clients = clients.map(client => ({
             id: client._id,
             name: client.name,
             city: client.city,
             country: normalizeCountryName(client.country),
-            state: client.state,
             coordinates: client.coordinates,
             description: client.description,
             industry: client.industry,
             partnership_since: client.partnershipSince,
-            zipCode: client.zipCode,
             images: client.images || []
         }));
         

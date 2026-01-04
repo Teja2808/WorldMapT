@@ -1,8 +1,8 @@
 /* Admin Panel Styles */
 :root {
-    --color-primary: #293276;
-    --color-primary-dark: #1f245a;
-    --color-secondary: #8246af;
+    --color-primary: #00D9FF;
+    --color-primary-dark: #00A5C7;
+    --color-secondary: #7B61FF;
     --color-background: #0A0E1A;
     --color-surface: #141824;
     --color-surface-elevated: #1E2433;
@@ -113,7 +113,7 @@ body {
 
 .btn-link:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(41, 50, 118, 0.4);
+    box-shadow: 0 6px 20px rgba(0, 217, 255, 0.4);
 }
 
 /* Sidebar Navigation */
@@ -155,7 +155,7 @@ body {
 
 .nav-item.active {
     border-left-color: var(--color-primary);
-    background: rgba(41, 50, 118, 0.1);
+    background: rgba(0, 217, 255, 0.1);
     color: var(--color-primary);
 }
 
@@ -221,7 +221,7 @@ body {
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(41, 50, 118, 0.4);
+    box-shadow: 0 6px 20px rgba(0, 217, 255, 0.4);
 }
 
 .btn-secondary {
@@ -259,8 +259,8 @@ body {
 .search-bar:hover,
 .search-bar:focus-within {
     border-color: var(--color-primary);
-    background: linear-gradient(135deg, rgba(41, 50, 118, 0.1) 0%, rgba(130, 70, 175, 0.05) 100%);
-    box-shadow: 0 4px 16px rgba(41, 50, 118, 0.1);
+    background: linear-gradient(135deg, rgba(0, 217, 255, 0.1) 0%, rgba(123, 97, 255, 0.05) 100%);
+    box-shadow: 0 4px 16px rgba(0, 217, 255, 0.1);
 }
 
 .search-bar i {
@@ -318,7 +318,7 @@ body {
 
 .data-card:hover {
     border-color: var(--color-primary);
-    box-shadow: 0 8px 32px rgba(41, 50, 118, 0.15), inset 0 1px 0 rgba(41, 50, 118, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 217, 255, 0.15), inset 0 1px 0 rgba(0, 217, 255, 0.1);
     transform: translateY(-4px);
 }
 
@@ -375,7 +375,7 @@ body {
     background: var(--color-primary);
     color: white;
     transform: scale(1.15);
-    box-shadow: 0 4px 12px rgba(41, 50, 118, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 217, 255, 0.3);
 }
 
 .btn-icon.danger {
@@ -394,8 +394,8 @@ body {
     flex-wrap: wrap;
     gap: 2rem;
     padding: 1rem 0;
-    border-top: 1px solid rgba(41, 50, 118, 0.1);
-    border-bottom: 1px solid rgba(41, 50, 118, 0.1);
+    border-top: 1px solid rgba(0, 217, 255, 0.1);
+    border-bottom: 1px solid rgba(0, 217, 255, 0.1);
     align-items: center;
 }
 
@@ -505,7 +505,7 @@ body {
     width: 95%;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 25px 50px rgba(41, 50, 118, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px rgba(0, 217, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
     position: relative;
 }
 
@@ -524,8 +524,8 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 2rem;
-    border-bottom: 1px solid rgba(41, 50, 118, 0.1);
-    background: rgba(41, 50, 118, 0.05);
+    border-bottom: 1px solid rgba(0, 217, 255, 0.1);
+    background: rgba(0, 217, 255, 0.05);
 }
 
 .modal-header h3 {
@@ -639,8 +639,8 @@ form {
 .form-group select:focus {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(41, 50, 118, 0.15), inset 0 0 0 1px rgba(41, 50, 118, 0.1);
-    background: rgba(41, 50, 118, 0.03);
+    box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.15), inset 0 0 0 1px rgba(0, 217, 255, 0.1);
+    background: rgba(0, 217, 255, 0.03);
 }
 
 .form-group small {
@@ -655,7 +655,7 @@ form {
     gap: 1rem;
     margin-top: 2rem;
     padding-top: 2rem;
-    border-top: 1px solid rgba(41, 50, 118, 0.1);
+    border-top: 1px solid rgba(0, 217, 255, 0.1);
 }
 
 /* Image Preview */
@@ -665,8 +665,8 @@ form {
     gap: 1.25rem;
     margin-top: 1.25rem;
     padding: 1.5rem;
-    background: rgba(41, 50, 118, 0.03);
-    border: 1px dashed rgba(41, 50, 118, 0.2);
+    background: rgba(0, 217, 255, 0.03);
+    border: 1px dashed rgba(0, 217, 255, 0.2);
     border-radius: 0.75rem;
 }
 
@@ -682,7 +682,7 @@ form {
 
 .image-preview-item:hover {
     border-color: var(--color-primary);
-    box-shadow: 0 8px 20px rgba(41, 50, 118, 0.2);
+    box-shadow: 0 8px 20px rgba(0, 217, 255, 0.2);
     transform: translateY(-4px);
 }
 
@@ -794,7 +794,7 @@ form {
 
 .stat-card:hover {
     border-color: var(--color-primary);
-    box-shadow: 0 4px 20px rgba(41, 50, 118, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 217, 255, 0.2);
 }
 
 .stat-icon {
@@ -809,12 +809,12 @@ form {
 }
 
 .stat-icon.offices {
-    background: rgba(41, 50, 118, 0.15);
+    background: rgba(0, 217, 255, 0.15);
     color: var(--color-primary);
 }
 
 .stat-icon.clients {
-    background: rgba(130, 70, 175, 0.15);
+    background: rgba(123, 97, 255, 0.15);
     color: var(--color-secondary);
 }
 
@@ -874,7 +874,7 @@ form {
 
 .recent-visit-item:hover {
     border-color: var(--color-primary);
-    background: rgba(41, 50, 118, 0.05);
+    background: rgba(0, 217, 255, 0.05);
 }
 
 .visit-details {

@@ -33,71 +33,29 @@ async function getFormCoordinates(type, e) {
     const form = document.getElementById(`${type}-form`);
     const address = form.address.value;
     const city = form.city.value;
-    const state = form.state.value;
     const country = form.country.value;
-
+    
     if (!address && !city) {
-        alert('Please enter a Street Name or City!');
+        alert('Please enter a Full Address or City!');
         return;
     }
-
-    // Build comprehensive query
-    const queryParts = [];
-    if (address) queryParts.push(address);
-    if (city && !address) queryParts.push(city);
-    if (state) queryParts.push(state);
-    if (country) queryParts.push(country);
-    const query = queryParts.join(', ');
-
+    
+    const query = address || (country ? `${city}, ${country}` : city);
     const btn = e ? e.currentTarget : document.querySelector(`#${type}-form button[onclick*="getFormCoordinates"]`);
     const originalText = btn.innerHTML;
-
+    
     try {
         btn.innerHTML = '<i class="ti ti-loader animate-spin"></i> Searching...';
         btn.disabled = true;
-
-        let coordinates = null;
-
-        // Try Google Geocoding API first (most reliable)
-        try {
-            coordinates = await geocodeWithGoogle(query);
-            if (coordinates) {
-                console.log('Coordinates found via Google Geocoding');
-            }
-        } catch (error) {
-            console.log('Google Geocoding failed, trying Nominatim...');
-        }
-
-        // Fall back to Nominatim if Google fails
-        if (!coordinates) {
-            try {
-                coordinates = await geocodeWithNominatim(query);
-                if (coordinates) {
-                    console.log('Coordinates found via Nominatim');
-                }
-            } catch (error) {
-                console.log('Nominatim failed, trying MapBox...');
-            }
-        }
-
-        // Fall back to MapBox as last resort
-        if (!coordinates) {
-            try {
-                coordinates = await geocodeWithMapBox(query);
-                if (coordinates) {
-                    console.log('Coordinates found via MapBox');
-                }
-            } catch (error) {
-                console.log('All geocoding services failed');
-            }
-        }
-
-        if (coordinates) {
-            form.latitude.value = coordinates.lat.toFixed(6);
-            form.longitude.value = coordinates.lon.toFixed(6);
-            alert('Coordinates found successfully!');
+        
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+            form.latitude.value = parseFloat(data[0].lat).toFixed(6);
+            form.longitude.value = parseFloat(data[0].lon).toFixed(6);
         } else {
-            alert('Location not found in any geocoding service. Please enter coordinates manually.');
+            alert('Location not found. Please enter coordinates manually.');
         }
     } catch (error) {
         console.error('Geocoding error:', error);
@@ -106,52 +64,6 @@ async function getFormCoordinates(type, e) {
         btn.innerHTML = originalText;
         btn.disabled = false;
     }
-}
-
-// Google Geocoding API (no API key needed for basic usage with fetch)
-async function geocodeWithGoogle(query) {
-    const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=AIzaSyDummyKey`,
-        { method: 'GET' }
-    );
-    const data = await response.json();
-
-    if (data.results && data.results.length > 0) {
-        const location = data.results[0].geometry.location;
-        return { lat: location.lat, lon: location.lng };
-    }
-    return null;
-}
-
-// Nominatim (OpenStreetMap) - Free, no API key needed
-async function geocodeWithNominatim(query) {
-    const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
-        {
-            headers: { 'User-Agent': 'WorldMap-App' }
-        }
-    );
-    const data = await response.json();
-
-    if (data && data.length > 0) {
-        return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-    }
-    return null;
-}
-
-// MapBox Geocoding - Free tier available
-async function geocodeWithMapBox(query) {
-    const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?limit=1`,
-        { method: 'GET' }
-    );
-    const data = await response.json();
-
-    if (data.features && data.features.length > 0) {
-        const coords = data.features[0].geometry.coordinates;
-        return { lat: coords[1], lon: coords[0] };
-    }
-    return null;
 }
 
 window.getFormCoordinates = getFormCoordinates;
@@ -345,18 +257,14 @@ function displayOffices(offices) {
                 <div class="card-info">
                     <div class="info-row">
                         <span class="info-row-label">Location</span>
-                        <div class="info-row-value"><i class="ti ti-map-pin"></i>${office.city}, ${office.state}, ${office.country}</div>
+                        <div class="info-row-value"><i class="ti ti-map-pin"></i>${office.city}, ${office.country}</div>
                     </div>
                     ${office.address ? `
                         <div class="info-row">
-                            <span class="info-row-label">Street</span>
+                            <span class="info-row-label">Address</span>
                             <div class="info-row-value"><i class="ti ti-map"></i>${office.address}</div>
                         </div>
                     ` : ''}
-                    <div class="info-row">
-                        <span class="info-row-label">Zip Code</span>
-                        <div class="info-row-value"><i class="ti ti-mailbox"></i>${office.zipCode}</div>
-                    </div>
                     ${office.employees ? `
                         <div class="info-row">
                             <span class="info-row-label">Employees</span>
@@ -397,8 +305,6 @@ async function openOfficeForm(id = null) {
         form.address.value = office.address || '';
         form.city.value = office.city;
         form.country.value = office.country;
-        form.state.value = office.state || '';
-        form.zipCode.value = office.zipCode || '';
         form.longitude.value = office.coordinates[0];
         form.latitude.value = office.coordinates[1];
         form.employees.value = office.employees || '';
@@ -482,18 +388,14 @@ function displayClients(clients) {
                 <div class="card-info">
                     <div class="info-row">
                         <span class="info-row-label">Location</span>
-                        <div class="info-row-value"><i class="ti ti-map-pin"></i>${client.city}, ${client.state}, ${client.country}</div>
+                        <div class="info-row-value"><i class="ti ti-map-pin"></i>${client.city}, ${client.country}</div>
                     </div>
                     ${client.address ? `
                         <div class="info-row">
-                            <span class="info-row-label">Street</span>
+                            <span class="info-row-label">Address</span>
                             <div class="info-row-value"><i class="ti ti-map"></i>${client.address}</div>
                         </div>
                     ` : ''}
-                    <div class="info-row">
-                        <span class="info-row-label">Zip Code</span>
-                        <div class="info-row-value"><i class="ti ti-mailbox"></i>${client.zipCode}</div>
-                    </div>
                     ${client.industry ? `
                         <div class="info-row">
                             <span class="info-row-label">Industry</span>
@@ -534,8 +436,6 @@ async function openClientForm(id = null) {
         form.address.value = client.address || '';
         form.city.value = client.city;
         form.country.value = client.country;
-        form.state.value = client.state || '';
-        form.zipCode.value = client.zipCode || '';
         form.longitude.value = client.coordinates[0];
         form.latitude.value = client.coordinates[1];
         form.industry.value = client.industry || '';
